@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Clinic login{% endblock %}
+{% block content %}
+<div class="wrap" style="max-width:420px">
+  <h1>Clinic login</h1>
+  <p class="muted">Only authorised clinic staff (director, quality officer) can open the dashboard.</p>
+  <form class="card" method="post" action="/login">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autofocus>
+    {% if error %}<div class="note bad">Wrong password.</div>{% endif %}
+    <div class="row" style="margin-top:12px"><button type="submit">Log in</button></div>
+    <p class="small muted" style="margin-top:12px">Demo password: <code>demo</code> (change it in <code>.env</code>).</p>
+  </form>
+</div>
+{% endblock %}

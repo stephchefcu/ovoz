@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Staff report{% endblock %}
+{% block nav %}
+  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+{% endblock %}
+{% block content %}
+<div class="wrap">
+  <div id="form">
+    <h1 data-i18n="s_title"></h1>
+    <p class="muted" data-i18n="s_sub"></p>
+
+    <div class="card">
+      <label for="ward" data-i18n="p_ward"></label>
+      <select id="ward">
+        {% for w in wards %}<option value="{{ w.code }}">{{ w.name }}</option>{% endfor %}
+      </select>
+
+      <label data-i18n="s_type"></label>
+      <select id="type">
+        <option value="incident" data-i18n="s_incident"></option>
+        <option value="near" data-i18n="s_near"></option>
+      </select>
+
+      <label data-i18n="s_harm"></label>
+      <select id="harm">
+        <option value="none" data-i18n="s_h_none"></option>
+        <option value="minor" data-i18n="s_h_minor"></option>
+        <option value="serious" data-i18n="s_h_serious"></option>
+      </select>
+
+      <label for="text" data-i18n="p_what"></label>
+      <div class="row" style="margin-bottom:8px"><button type="button" class="rec" id="recbtn">🎤</button></div>
+      <div id="recstatus" class="note info hidden"></div>
+      <textarea id="text" data-i18n-ph="s_ph" maxlength="3000"></textarea>
+
+      <div id="error" class="note bad hidden"></div>
+      <div class="row" style="margin-top:12px"><button id="send" data-i18n="submit"></button></div>
+    </div>
+
+    <div class="card soft privacy">
+      <h3 data-i18n="priv_title"></h3>
+      <ul>
+        <li data-i18n="priv_no"></li>
+        <li data-i18n="priv_audio"></li>
+        <li data-i18n="priv_yes"></li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="done" class="hidden">
+    <h1 data-i18n="done_title"></h1>
+    <p data-i18n="done_code"></p>
+    <div class="code" id="code"></div>
+    <p class="muted small"><span data-i18n="done_follow"></span> <a href="/case">/case</a></p>
+    <button class="ghost" id="again" data-i18n="again"></button>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/i18n.js"></script>
+<script src="/static/record.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  document.addEventListener("DOMContentLoaded", () => {
+    setupRecorder({ button: $("recbtn"), status: $("recstatus"), textarea: $("text") });
+  });
+  $("send").addEventListener("click", async () => {
+    const text = $("text").value.trim();
+    $("error").classList.add("hidden");
+    if (text.length < 5) { $("error").textContent = t("too_short"); $("error").classList.remove("hidden"); return; }
+    $("send").disabled = true; $("send").textContent = t("sending");
+    try {
+      const r = await fetch("/api/report", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "staff", ward_code: $("ward").value, text, lang: LANG,
+          harm: $("harm").value, near_miss: $("type").value === "near" }) });
+      if (!r.ok) throw new Error(r.status);
+      const j = await r.json();
+      $("code").textContent = j.case_code;
+      $("form").classList.add("hidden"); $("done").classList.remove("hidden");
+    } catch (e) {
+      $("error").textContent = t("err"); $("error").classList.remove("hidden");
+    }
+    $("send").disabled = false; $("send").textContent = t("submit");
+  });
+  $("again").addEventListener("click", () => {
+    $("text").value = ""; $("done").classList.add("hidden"); $("form").classList.remove("hidden");
+  });
+</script>
+{% endblock %}

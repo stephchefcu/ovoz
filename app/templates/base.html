@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Clinic Safety Platform{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+{% block topbar %}
+<div class="topbar">
+  <a href="/">Clinic Safety Platform</a>
+  <div class="nav">
+    {% block nav %}{% endblock %}
+  </div>
+</div>
+{% endblock %}
+{% block content %}{% endblock %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Clinic dashboard{% endblock %}
+{% block nav %}<a href="/qr">QR codes</a><a href="/staff">Staff form</a><a href="/logout">Log out</a>{% endblock %}
+{% block content %}
+<div class="wrap wide">
+  <div class="row" style="justify-content:space-between">
+    <h1>Clinic dashboard</h1>
+    <div class="small muted" id="mode"></div>
+  </div>
+  <div class="note info small" id="privnote"></div>
+
+  <div class="grid kpis" id="kpis"></div>
+
+  <div id="urgentbox" class="card hidden" style="margin-top:14px;border-color:#f2b8b8;background:#fff8f8">
+    <h2>⚠ Urgent patient reports — review now</h2>
+    <div id="urgent"></div>
+  </div>
+
+  <div id="radarbox" class="card hidden" style="margin-top:14px">
+    <h2>Early-warning radar</h2>
+    <p class="small muted">These places had more reports than usual this week, so they may need a look before something serious happens.</p>
+    <div id="radar"></div>
+  </div>
+
+  <h2 style="margin-top:20px">Recurring problems <span class="small muted">(patients and staff combined)</span></h2>
+  <p class="small muted">A problem seen by both patients and staff is marked <span class="badge linked">linked</span>. Staff reports appear only as neutral summaries.</p>
+  <div id="clusters"></div>
+
+  <div class="grid two" style="margin-top:14px">
+    <div>
+      <div class="card">
+        <h2>Action tracker</h2>
+        <div id="actions"></div>
+      </div>
+      <div class="card">
+        <h2>Latest reports</h2>
+        <p class="small muted">Ask a follow-up question: the reporter sees it by entering their case code (no identity needed).</p>
+        <div id="feed"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Where reports come from</h2>
+        <div id="heat"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal" class="modal-bg hidden"><div class="modal" id="modalbody"></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const sevBadge = n => `<span class="badge sev${n}">severity ${n}/5</span>`;
+  let DATA = null;
+
+  async function load() {
+    const r = await fetch("/api/dashboard");
+    if (r.status === 401) { location.href = "/login"; return; }
+    DATA = await r.json();
+    render(DATA);
+  }
+
+  function render(d) {
+    $("mode").textContent = "AI mode: " + (d.ai_mode === "llm" ? "language model" : "rules (offline fallback)");
+    $("privnote").innerHTML = `Privacy rules on: wards or issues with fewer than <b>${d.privacy.k_min}</b> reports are combined or hidden
+      (${d.kpi.hidden_small_groups} small group(s) hidden). Staff reports show as neutral summaries with week-level dates only.
+      Window: last ${d.privacy.window_days} days.`;
+
+    const k = d.kpi;
+    $("kpis").innerHTML = [
+      ["Reports", k.reports], ["From patients", k.patient], ["From staff", k.staff],
+      ["Linked problems", k.linked_clusters], ["Urgent", k.urgent], ["Open actions", k.open_actions],
+    ].map(([a, b]) => `<div class="kpi"><b>${b}</b><span>${a}</span></div>`).join("");
+
+    $("urgentbox").classList.toggle("hidden", !d.urgent.length);
+    $("urgent").innerHTML = d.urgent.map(u => `<div class="quote"><b>${esc(u.label)}</b> · ${esc(u.category)} · ${esc(u.day)}<br>${esc(u.text)}
+      <div><button class="small" onclick="askModal(${u.id})">Ask a question</button></div></div>`).join("");
+
+    $("radarbox").classList.toggle("hidden", !d.radar.length);
+    $("radar").innerHTML = d.radar.map(r => `<div class="note warn"><b>${esc(r.label)}</b>: ${r.this_week} reports this week vs about ${r.usual} usual.</div>`).join("");
+
+    $("clusters").innerHTML = d.clusters.length ? d.clusters.map((c, i) => `
+      <div class="card cluster ${c.linked ? "linked" : ""}">
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <h3>${esc(c.label)} — ${esc(c.theme_name)}</h3>
+            <span class="badge p">${c.patient_count} patient</span>
+            <span class="badge s">${c.staff_count} staff</span>
+            ${c.linked ? '<span class="badge linked">linked: seen by both</span>' : ""}
+            ${sevBadge(Math.round(c.avg_severity))}
+            ${c.near_misses ? `<span class="badge near">${c.near_misses} near-miss</span>` : ""}
+          </div>
+          <button class="small" onclick="rcaModal(${i})">Root-cause help</button>
+        </div>
+        <div class="small muted" style="margin-top:6px">${Object.entries(c.categories).map(([k, v]) => esc(k) + " ×" + v).join(" · ")}</div>
+        ${c.patient_examples.map(t => `<div class="quote">“${esc(t)}”</div>`).join("")}
+        ${c.staff_summaries.map(t => `<div class="quote staff"><span class="small muted">Staff (summary):</span> ${esc(t)}</div>`).join("")}
+      </div>`).join("") : '<div class="card muted">No recurring problems to show yet.</div>';
+
+    $("heat").innerHTML = `<table><thead><tr><th>Place</th><th>Reports</th><th>P / S</th><th>Last 6 weeks</th></tr></thead><tbody>` +
+      d.heat.map(h => {
+        const mx = Math.max(1, ...h.trend);
+        return `<tr><td>${esc(h.label)}</td><td><b>${h.total}</b></td><td>${h.patient} / ${h.staff}</td>
+          <td><span class="spark">${h.trend.map(v => `<i style="height:${Math.max(2, Math.round(22 * v / mx))}px" title="${v}"></i>`).join("")}</span></td></tr>`;
+      }).join("") + "</tbody></table>";
+
+    $("feed").innerHTML = d.feed.map(f => `
+      <div class="quote ${f.source === "staff" ? "staff" : ""}">
+        <span class="badge ${f.source === "staff" ? "s" : "p"}">${f.source}</span>
+        ${f.urgent ? '<span class="badge urgent">urgent</span>' : ""} ${sevBadge(f.severity)}
+        <span class="small muted">${esc(f.label)} · ${esc(f.category)} · ${esc(f.day)}${f.bucket ? " · " + esc(f.bucket) : ""}</span><br>
+        ${esc(f.text)}
+        <div><button class="ghost small" onclick="askModal(${f.id})">Ask a question</button></div>
+      </div>`).join("");
+
+    $("actions").innerHTML = d.actions.length ? `<table><thead><tr><th>Action</th><th>Owner</th><th>Due</th><th></th></tr></thead><tbody>` +
+      d.actions.map(a => `<tr><td>${esc(a.title)}<div class="small muted">${esc(a.scope_unit)}${a.cause ? " · " + esc(a.cause) : ""}</div></td>
+        <td>${esc(a.owner)}</td><td>${esc(a.due)}</td>
+        <td>${a.status === "done" ? '<span class="badge sev1">done</span>' : `<button class="small" onclick="doneAction(${a.id})">Mark done</button>`}</td></tr>`).join("") +
+      "</tbody></table>" : '<p class="muted">No actions yet. Open “Root-cause help” on a problem to create one.</p>';
+  }
+
+  // ---- modals ---------------------------------------------------------------------------
+  function openModal(html) { $("modalbody").innerHTML = html; $("modal").classList.remove("hidden"); }
+  function closeModal() { $("modal").classList.add("hidden"); }
+  $("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+
+  function askModal(id) {
+    openModal(`<h2>Ask the reporter a question</h2>
+      <p class="small muted">The reporter stays anonymous. They see this when they enter their case code.</p>
+      <textarea id="askbody" style="min-height:90px" placeholder="For example: which shift did this happen on? Is it still a problem?"></textarea>
+      <div class="row" style="margin-top:10px"><button onclick="sendAsk(${id})">Send</button><button class="ghost" onclick="closeModal()">Cancel</button></div>`);
+  }
+  async function sendAsk(id) {
+    const body = $("askbody").value.trim(); if (!body) return;
+    await fetch("/api/clinic/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ report_id: id, body }) });
+    closeModal();
+  }
+
+  async function rcaModal(i) {
+    const c = DATA.clusters[i];
+    openModal(`<h2>Root-cause help</h2><p class="muted">${esc(c.label)} — ${esc(c.theme_name)}</p><p>Thinking…</p>`);
+    const r = await fetch("/api/clusters/rca", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: c.key }) });
+    const j = await r.json();
+    window._rca = { c, j };
+    openModal(`
+      <h2>Root-cause help</h2>
+      <p class="muted">${esc(c.label)} — ${esc(c.theme_name)}</p>
+      <div class="note info small">Suggested by AI (${j.source === "llm" ? "language model" : "rules"}). It looks at processes, not people. A person must review and decide.</div>
+      <p>${esc(j.summary)}</p>
+      <h3>Why is this happening?</h3>
+      <ol class="steps">${j.whys.map(w => `<li>${esc(w)}</li>`).join("")}</ol>
+      <h3>Proposed fixes</h3>
+      <div>${j.fixes.map((f, n) => `<label style="font-weight:400;margin:6px 0"><input type="radio" name="fix" value="${n}" ${n === 0 ? "checked" : ""}> ${esc(f)}</label>`).join("")}</div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+      <h3>Create an action</h3>
+      <label>Owner (role or name)</label><input type="text" id="aowner" placeholder="e.g. Head nurse, Surgery">
+      <label>Due date</label><input type="date" id="adue">
+      <label>Message for the ward screen (“you said, we did”) — keep it neutral</label>
+      <textarea id="apublic" style="min-height:60px"></textarea>
+      <div class="row" style="margin-top:12px"><button onclick="createAction()">Create action</button><button class="ghost" onclick="closeModal()">Close</button></div>`);
+    const sel = () => document.querySelector("input[name=fix]:checked");
+    const fill = () => { $("apublic").value = "Based on your feedback: " + j.fixes[+sel().value]; };
+    document.querySelectorAll("input[name=fix]").forEach(x => x.addEventListener("change", fill));
+    fill();
+  }
+  async function createAction() {
+    const { c, j } = window._rca;
+    const fix = j.fixes[+document.querySelector("input[name=fix]:checked").value];
+    await fetch("/api/actions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      theme: c.theme, unit: c.unit, title: fix, cause: j.whys[Math.min(1, j.whys.length - 1)] || "",
+      owner: $("aowner").value, due: $("adue").value, public_text: $("apublic").value }) });
+    closeModal(); load();
+  }
+  async function doneAction(id) { await fetch(`/api/actions/${id}/done`, { method: "POST" }); load(); }
+
+  load();
+  setInterval(load, 20000);
+</script>
+{% endblock %}

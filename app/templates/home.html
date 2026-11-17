@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block nav %}
+  {% if is_clinic %}<a href="/dashboard">Dashboard</a><a href="/logout">Log out</a>{% else %}<a href="/login">Clinic login</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="wrap">
+  <h1>Clinic Safety &amp; Feedback Platform</h1>
+  <p class="muted">Patients and staff speak up anonymously in Uzbek or Russian. The clinic privately sees the connected picture and fixes the causes.</p>
+
+  <div class="card">
+    <h2>For patients and relatives</h2>
+    <p class="small muted">In real use each ward has its own QR code (see the printable sheet). For the demo, open a ward page:</p>
+    <div class="row">
+      {% for w in wards %}<a class="btn ghost small" href="/r/{{ w.code }}">{{ w.name }}</a>{% endfor %}
+    </div>
+    <p class="small" style="margin-top:12px"><a href="/case">Already reported? Follow up with your case code</a></p>
+  </div>
+
+  <div class="card">
+    <h2>For staff</h2>
+    <p class="small muted">Anonymous reporting of mistakes and near-misses.</p>
+    <a class="btn" href="/staff">Report a mistake or near-miss</a>
+  </div>
+
+  <div class="card">
+    <h2>For the clinic (director, quality officer)</h2>
+    <div class="row">
+      <a class="btn" href="/dashboard">Open dashboard</a>
+      <a class="btn ghost" href="/qr">Printable QR codes</a>
+    </div>
+    <p class="small muted" style="margin-top:10px">Ward screens ("You said, we did"):
+      {% for w in wards %}<a href="/board/{{ w.code }}">{{ w.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+  </div>
+</div>
+{% endblock %}

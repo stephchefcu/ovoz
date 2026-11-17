@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Case follow-up{% endblock %}
+{% block nav %}
+  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+{% endblock %}
+{% block content %}
+<div class="wrap">
+  <h1 data-i18n="c_title"></h1>
+  <p class="muted" data-i18n="c_sub"></p>
+  <div class="card">
+    <label for="code" data-i18n="c_code"></label>
+    <div class="row">
+      <input type="text" id="code" placeholder="ABCD-2345" autocomplete="off" style="max-width:260px;text-transform:uppercase">
+      <button id="open" data-i18n="c_open"></button>
+    </div>
+    <div id="error" class="note bad hidden"></div>
+  </div>
+
+  <div id="thread" class="hidden">
+    <div id="msgs"></div>
+    <div class="card">
+      <label for="reply" data-i18n="c_reply"></label>
+      <textarea id="reply" style="min-height:80px" maxlength="2000"></textarea>
+      <div class="row" style="margin-top:10px"><button id="send" data-i18n="c_send"></button></div>
+      <div id="ok" class="note ok hidden"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/i18n.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  async function load() {
+    $("error").classList.add("hidden"); $("ok").classList.add("hidden");
+    const r = await fetch("/api/case/open", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: $("code").value }) });
+    if (!r.ok) {
+      $("thread").classList.add("hidden");
+      $("error").textContent = r.status === 404 ? t("c_notfound") : t("err");
+      $("error").classList.remove("hidden"); return;
+    }
+    const j = await r.json();
+    $("msgs").innerHTML = j.messages.length ? j.messages.map(m =>
+      `<div class="msg ${m.sender}"><div class="small muted">${m.sender === "clinic" ? t("c_clinic") : t("c_you")} · ${esc(m.created_day)}</div>${esc(m.body)}</div>`
+    ).join("") : `<p class="muted">${t("c_none")}</p>`;
+    $("thread").classList.remove("hidden");
+  }
+  $("open").addEventListener("click", load);
+  $("code").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); load(); } });
+  $("send").addEventListener("click", async () => {
+    const body = $("reply").value.trim(); if (!body) return;
+    const r = await fetch("/api/case/reply", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: $("code").value, body }) });
+    if (r.ok) { $("reply").value = ""; $("ok").textContent = t("c_sent"); $("ok").classList.remove("hidden"); load(); $("ok").classList.remove("hidden"); }
+  });
+  document.addEventListener("langchange", () => { if (!$("thread").classList.contains("hidden")) load(); });
+</script>
+{% endblock %}
