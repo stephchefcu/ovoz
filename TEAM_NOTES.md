@@ -80,9 +80,15 @@ Code: https://github.com/stephchefcu/ovoz (public). Keys live only in `.env`: ne
 
 ## Logo
 
-Files in `app/static/brand/`, colours: blue `#2563eb`, navy `#0f172a`, light blue on dark `#93c5fd`.
-Use `mark.svg` on light, `mark-on-dark.svg` on dark, `mark-small.svg` below 32 px, `telegram-avatar-640.png`
-for the bot picture (@BotFather → `/setuserpic`). The slanted "ovoz" wordmark: use the designer's SVG.
+One logo: **Mark (light)**, a navy ring with white inside and five blue bars. Colours: blue `#2563eb`, navy `#0f172a`,
+white. Use it everywhere, on light or dark backgrounds (the white inside keeps it readable on dark).
+
+- `brand-kit/ovoz-logo.png`: the logo on white (1024 px), also the Telegram bot picture (@BotFather → `/setuserpic`)
+- `brand-kit/ovoz-logo-transparent.png`: for slides and coloured backgrounds
+- `brand-kit/ovoz-logo-small.png`: three-bar version, only for tiny sizes (browser tab, 16–32 px)
+- `brand-kit/svg/`: the same as vectors; `brand-kit/ovoz-logos.zip`: everything in one file
+
+The slanted "ovoz" wordmark letters: use the designer's SVG (in `#2563eb`).
 
 ## 2-minute demo
 
