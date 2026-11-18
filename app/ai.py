@@ -213,6 +213,38 @@ def _hits(text, words):
     return found
 
 
+# ---- privacy check before sending: details that can identify a person even after masking -----------
+_RISKY = [
+    re.compile(r"(?<!\w)(?:the only|only one|the one)\s+\w+(?:\s+\w+)?", re.I),
+    re.compile(r"(?<!\w)единственн\w*\s+\w+", re.I),
+    re.compile(r"(?<!\w)одн[аи]\s+(?:на|во|в)\s+\w+", re.I),
+    re.compile(r"(?<!\w)(?:yagona|faqat bitta)\s+\w+", re.I),
+    re.compile(r"(?<!\w)\d{1,3}\s?(?:years? old|y\.o\.|yosh\w*|лет|год\w*)(?!\w)", re.I),           # ages
+    re.compile(r"(?<!\w)\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?(?!\w)"),                                # exact dates
+    re.compile(r"(?<!\w)(?:bed|krovat|койк\w*|joy)\s*(?:no\.?|№|#)?\s*\d+", re.I),                  # bed numbers
+]
+
+
+def privacy_flags(masked: str, limit: int = 5) -> list:
+    """Phrases that may still identify someone (unique roles, ages, exact dates, bed numbers).
+    Shown to the reporter before sending, so they can remove them. Nothing is changed automatically."""
+    found = []
+    for pat in _RISKY:
+        for m in pat.finditer(masked or ""):
+            s = m.group(0).strip(" ,.;:")
+            if s and s.lower() not in (f.lower() for f in found):
+                found.append(s)
+    return found[:limit]
+
+
+_BRIBE = ["bribe", "informal payment", "asked for money", "paid extra", "pora", "pul so'rad", "qo'shimcha pul",
+          "взятк", "просили деньги", "доплат"]
+
+
+def mentions_bribery(masked: str) -> bool:
+    return bool(_hits(masked, _BRIBE))
+
+
 def rule_triage(masked: str, source: str, harm: str = "none", near_miss_flag: bool = False):
     scores = {c: len(_hits(masked, kws)) for c, kws in _KEYWORDS.items()}
     best = max(scores, key=lambda c: scores[c])

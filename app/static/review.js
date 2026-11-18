@@ -12,7 +12,8 @@ async function previewText(text) {
   return r.json();  // {masked, date, time_bucket, terms_version}
 }
 
-// opts: { box, hide: [elements to hide while reviewing], masked, rows: () => [[label, value], ...],
+// opts: { box, hide: [elements to hide while reviewing], masked, flags: [details that may identify someone],
+//         rows: () => [[label, value], ...],
 //         onAgree: async () => {...}, onBack: () => {...} }
 function showReview(opts) {
   _review = opts;
@@ -30,14 +31,15 @@ function renderReview() {
     <h2>${t("rv_title")}</h2>
     <label>${t("rv_msg")}</label>
     <div class="masked">${reviewEsc(o.masked)}</div>
+    ${(o.flags || []).length ? `<div class="risky">${t("risky_title")}<ul>${o.flags.map(f => `<li>${reviewEsc(f)}</li>`).join("")}</ul>${t("risky_hint")}</div>` : ""}
     ${rows.length ? `<table class="rv">${rows.map(([k, v]) => `<tr><th>${reviewEsc(k)}</th><td>${reviewEsc(v)}</td></tr>`).join("")}</table>` : ""}
     <div class="note info small">${t("rv_not")}<br>${t("rv_who")}</div>
     <label class="agree"><input type="checkbox" id="rv_ok">
       <span>${t("rv_agree_pre")} <a href="${typeof PRIVACY_URL !== "undefined" ? PRIVACY_URL : "/privacy"}" target="_blank" rel="noopener">${t("rv_terms")}</a>${t("rv_agree_post")}</span></label>
     <div id="rv_err" class="note bad hidden"></div>
-    <div class="row" style="margin-top:12px">
-      <button id="rv_send" disabled>${t("btn_agree")}</button>
-      <button class="ghost" id="rv_back">${t("btn_back")}</button>
+    <div style="display:grid;gap:10px;margin-top:14px">
+      <button class="block" id="rv_send" disabled>${t("btn_agree")}</button>
+      <button class="ghost block" id="rv_back">${t("btn_back")}</button>
     </div>`;
   const ok = document.getElementById("rv_ok"), send = document.getElementById("rv_send");
   ok.addEventListener("change", () => { send.disabled = !ok.checked; });

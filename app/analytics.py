@@ -144,7 +144,7 @@ def build_dashboard(conn, clinic_id):
         "avg_severity": round(v["sev_sum"] / v["total"], 1),
         "trend": [v["weeks"].get(w, 0) for w in week_keys],
     } for k, v in heat.items()]
-    heat_rows.sort(key=lambda x: -x["total"])
+    heat_rows.sort(key=lambda x: x["label"].lower())  # A-Z on purpose: never rank wards by report count
 
     # ---- early-warning radar: latest week above the ward's own usual level -----------------
     radar = []
@@ -180,6 +180,7 @@ def build_dashboard(conn, clinic_id):
             "urgent": len(urgent),
             "linked_clusters": sum(1 for c in clusters if c["linked"]),
             "open_actions": sum(1 for a in actions if a["status"] == "open"),
+            "fixed": sum(1 for a in actions if a["status"] == "done"),  # headline: problems fixed, not reports
             "hidden_small_groups": hidden,
         },
         "clusters": clusters,

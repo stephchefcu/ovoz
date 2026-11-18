@@ -33,27 +33,37 @@ def ward_exists(conn, ward_code: str, clinic_id: Optional[int] = None) -> bool:
 
 
 def save_report(conn, source: str, ward_code: str, text: str, lang: str, rating: Optional[int] = None,
-                harm: str = "none", near_miss: bool = False, terms_version: Optional[str] = None) -> dict:
-    """Mask, triage and store one report. Returns {"case_code", "urgent"}. Only masked text is stored.
-    terms_version records which Terms & Privacy version the person agreed to before sending."""
+                harm: str = "none", near_miss: bool = False, terms_version: Optional[str] = None,
+                reporter: Optional[str] = None, urgent: bool = False) -> dict:
+    """Mask, triage and store one report. Only masked text is stored.
+    The AI (or the rules) decides category and severity; the reporter never has to.
+    terms_version records which Terms & Privacy version the person agreed to before sending.
+    reporter: patient / relative / staff. urgent: the person pressed "Someone needs help NOW".
+    Returns {"case_code", "urgent", "serious", "bribery"} so the reporter can be pointed to the right channel."""
     ward = get_ward(conn, ward_code)
     if not ward:
         raise ValueError("unknown or removed department")
     result = ai.analyze(text, source, harm, near_miss)
+    if urgent:
+        result["urgent"] = True
+        result["severity"] = max(result["severity"], 4)
+    reporter = reporter if reporter in ("patient", "relative", "staff") else ("staff" if source == "staff" else "patient")
     now = analytics.local_now()
     delay = random.uniform(0, config.STAFF_DELAY_HOURS) * 3600 if source == "staff" else 0
     release_at = (datetime.now(timezone.utc) + timedelta(seconds=delay)).strftime("%Y-%m-%dT%H:%M:%S")
     code = new_case_code()
     conn.execute(
         "INSERT INTO reports (source, ward_code, text_masked, summary, category, theme, severity, urgent, "
-        "near_miss, rating, lang, created_day, time_bucket, release_at, case_hash, terms_version, clinic_id) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "near_miss, rating, lang, created_day, time_bucket, release_at, case_hash, terms_version, clinic_id, "
+        "reporter) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (source, ward_code, result["masked"], result["summary"], result["category"], result["theme"],
          result["severity"], int(result["urgent"]), int(result["near_miss"]), rating, lang,
          now.date().isoformat(), analytics.time_bucket(now), release_at, hash_code(code), terms_version,
-         ward["clinic_id"]),
+         ward["clinic_id"], reporter),
     )
-    return {"case_code": code, "urgent": result["urgent"]}
+    return {"case_code": code, "urgent": bool(result["urgent"]),
+            "serious": result["severity"] >= 4,          # remind them of the official reporting channel
+            "bribery": ai.mentions_bribery(result["masked"])}  # point to the anti-corruption line 1203
 
 
 def find_case(conn, code: str) -> Optional[str]:

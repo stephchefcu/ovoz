@@ -6,69 +6,102 @@
 {% block content %}
 <div class="wrap">
   <div id="form">
-    <div class="small muted">{{ clinic.name }}</div>
+    <div class="eyebrow">{{ clinic.name }} ·
+      <span id="wardname" data-name-en="{{ ward.name }}" data-name-uz="{{ ward.name_uz or '' }}" data-name-ru="{{ ward.name_ru or '' }}">{{ ward.name }}</span></div>
     <h1 data-i18n="p_title"></h1>
-    <p class="muted" data-i18n="p_sub"></p>
-    <div class="note warn small" data-i18n="emergency"></div>
+    <div class="trust">🔒 <span data-i18n="trust_patient"></span></div>
 
-    <div class="card">
-      <div class="muted small"><span data-i18n="p_ward"></span>:
-        <b id="wardname" data-name-en="{{ ward.name }}" data-name-uz="{{ ward.name_uz or '' }}" data-name-ru="{{ ward.name_ru or '' }}">{{ ward.name }}</b></div>
-
-      <label data-i18n="p_rating"></label>
-      <div class="stars" id="stars">
-        {% for i in range(1,6) %}<button type="button" data-v="{{ i }}">★</button>{% endfor %}
-      </div>
-
-      <label for="text" data-i18n="p_what"></label>
-      <div class="row" style="margin-bottom:8px">
-        <button type="button" class="rec" id="recbtn">🎤</button>
-      </div>
-      <div id="recstatus" class="note info hidden"></div>
-      <textarea id="text" data-i18n-ph="p_ph" maxlength="3000"></textarea>
-
-      <div id="error" class="note bad hidden"></div>
-      <div class="row" style="margin-top:12px"><button id="send" data-i18n="submit"></button></div>
+    <button type="button" class="help" id="helpbtn" data-i18n="help_btn"></button>
+    <div id="helpbox" class="helpbox hidden">
+      <b data-i18n="help_now"></b>
+      <div class="small" style="margin-top:6px" data-i18n="help_also"></div>
     </div>
 
-    {% if tg %}<p class="small"><a class="btn ghost small tgbtn" href="{{ tg }}" data-i18n="tg_open"></a></p>{% endif %}
-    <div class="card soft privacy">
-      <h3 data-i18n="priv_title"></h3>
+    <div class="card" style="margin-top:14px">
+      <div class="q" data-i18n="who_q"></div>
+      <div class="choices" id="who">
+        <button type="button" class="choice" data-v="patient"><span class="emo">🧑</span><span data-i18n="who_patient"></span></button>
+        <button type="button" class="choice" data-v="relative"><span class="emo">👪</span><span data-i18n="who_relative"></span></button>
+      </div>
+
+      <div id="rateblock">
+        <div class="q"><span data-i18n="how_q"></span> <span class="opt" data-i18n="optional"></span></div>
+        <div class="choices three" id="faces">
+          <button type="button" class="choice" data-v="5"><span class="emo">🙂</span><span data-i18n="f_good"></span></button>
+          <button type="button" class="choice" data-v="3"><span class="emo">😐</span><span data-i18n="f_ok"></span></button>
+          <button type="button" class="choice" data-v="1"><span class="emo">🙁</span><span data-i18n="f_bad"></span></button>
+        </div>
+      </div>
+
+      <label for="text" class="q" data-i18n="p_what"></label>
+      <button type="button" class="rec" id="recbtn">🎤</button>
+      <div id="recstatus" class="note info hidden"></div>
+      <textarea id="text" data-i18n-ph="p_ph" maxlength="3000" style="margin-top:10px"></textarea>
+
+      <div id="error" class="note bad hidden"></div>
+      <button id="send" class="block" style="margin-top:14px" data-i18n="submit"></button>
+    </div>
+
+    <details class="privacy">
+      <summary data-i18n="privacy_how"></summary>
       <ul>
         <li data-i18n="priv_no"></li>
         <li data-i18n="priv_audio"></li>
         <li data-i18n="priv_yes"></li>
       </ul>
-    </div>
+    </details>
+    {% if tg %}<p class="small" style="margin-top:14px"><a href="{{ tg }}" data-i18n="tg_open"></a></p>{% endif %}
   </div>
 
   <div id="review" class="card hidden"></div>
 
   <div id="done" class="hidden">
+    <div class="done-mark">✅</div>
     <h1 data-i18n="done_title"></h1>
-    <div id="urgentnote" class="note warn hidden" data-i18n="done_urgent"></div>
+    <div id="urgentnote" class="note bad hidden" data-i18n="done_urgent"></div>
+    <div id="seriousnote" class="note warn hidden" data-i18n="serious_note"></div>
+    <div id="bribenote" class="note info hidden" data-i18n="bribe_note"></div>
     <p data-i18n="done_code"></p>
     <div class="code" id="code"></div>
     <p class="muted small"><span data-i18n="done_follow"></span> <a href="/case">/case</a></p>
-    <button class="ghost" id="again" data-i18n="again"></button>
+    <button class="ghost block" id="again" data-i18n="again"></button>
   </div>
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="/static/i18n.js"></script>
-<script src="/static/record.js"></script>
-<script src="/static/review.js"></script>
+<script src="/static/i18n.js?v={{ V }}"></script>
+<script src="/static/record.js?v={{ V }}"></script>
+<script src="/static/review.js?v={{ V }}"></script>
 <script>
   const WARD = {{ ward.code|tojson }};
   const TERMS_VERSION = {{ TERMS_VERSION|tojson }};
   const PRIVACY_URL = "/privacy?c=" + encodeURIComponent({{ clinic.slug|tojson }});
   const CLINIC_NAME = {{ clinic.name|tojson }};
-  let rating = null;
+  const FACE = { 5: "f_good", 3: "f_ok", 1: "f_bad" };
+  let who = null, rating = null, urgent = false;
   const $ = id => document.getElementById(id);
-  document.querySelectorAll("#stars button").forEach(b => b.addEventListener("click", () => {
-    rating = +b.dataset.v;
-    document.querySelectorAll("#stars button").forEach(x => x.classList.toggle("on", +x.dataset.v <= rating));
-  }));
+
+  function pick(groupId, attr, setter) {
+    document.querySelectorAll(`#${groupId} .choice`).forEach(b => b.addEventListener("click", () => {
+      const already = b.classList.contains("on");
+      document.querySelectorAll(`#${groupId} .choice`).forEach(x => x.classList.remove("on"));
+      if (!(already && groupId === "faces")) b.classList.add("on");   // tap a face again to clear it
+      setter(already && groupId === "faces" ? null : b.dataset.v);
+    }));
+  }
+  pick("who", "v", v => { who = v; $("error").classList.add("hidden"); });
+  pick("faces", "v", v => { rating = v ? +v : null; });
+
+  // "Someone needs help NOW": what to do right now comes first; the report is then marked urgent.
+  $("helpbtn").addEventListener("click", () => {
+    urgent = true;
+    $("helpbox").classList.remove("hidden");
+    $("helpbtn").classList.add("hidden");
+    $("rateblock").classList.add("hidden");
+    rating = null;
+    $("text").focus();
+  });
+
   document.addEventListener("DOMContentLoaded", () => {
     setupRecorder({ button: $("recbtn"), status: $("recstatus"), textarea: $("text") });
   });
@@ -78,36 +111,45 @@
   $("send").addEventListener("click", async () => {
     const text = $("text").value.trim();
     $("error").classList.add("hidden");
+    if (!who && !urgent) return showError(t("need_who"));
     if (text.length < 5) return showError(t("too_short"));
     $("send").disabled = true;
     let p;
     try { p = await previewText(text); } catch (e) { $("send").disabled = false; return showError(t("err")); }
     $("send").disabled = false;
+    const reporter = who || "patient";
     showReview({
-      box: $("review"), hide: [$("form")], masked: p.masked,
-      rows: () => [
-        [t("rv_clinic"), CLINIC_NAME],
-        [t("p_ward"), $("wardname").textContent],
-        [t("rv_role"), t("role_patient")],
-        [t("rv_rating"), rating ? rating + "★" : t("rv_none")],
-        [t("rv_date"), partOfDay(p)],
-        [t("rv_lang"), langName()],
-      ],
+      box: $("review"), hide: [$("form")], masked: p.masked, flags: p.flags,
+      rows: () => {
+        const rows = [
+          [t("rv_clinic"), CLINIC_NAME],
+          [t("p_ward"), $("wardname").textContent],
+          [t("rv_role"), t(reporter === "relative" ? "role_relative" : "role_patient")],
+        ];
+        if (urgent) rows.push(["", t("rv_urgent")]);
+        else rows.push([t("rv_rating"), rating ? t(FACE[rating]) : t("rv_none")]);
+        rows.push([t("rv_date"), partOfDay(p)], [t("rv_lang"), langName()]);
+        return rows;
+      },
       onAgree: async () => {
         const r = await fetch("/api/report", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source: "patient", ward_code: WARD, text, lang: LANG, rating,
+          body: JSON.stringify({ source: "patient", ward_code: WARD, text, lang: LANG, rating, reporter, urgent,
                                  agree: true, terms_version: TERMS_VERSION }) });
         if (!r.ok) throw new Error(r.status);
         const j = await r.json();
         $("code").textContent = j.case_code;
         $("urgentnote").classList.toggle("hidden", !j.urgent);
+        $("seriousnote").classList.toggle("hidden", !(j.serious && !j.urgent));
+        $("bribenote").classList.toggle("hidden", !j.bribery);
         $("review").classList.add("hidden"); $("done").classList.remove("hidden");
+        window.scrollTo(0, 0);
       },
     });
   });
   $("again").addEventListener("click", () => {
-    $("text").value = ""; rating = null;
-    document.querySelectorAll("#stars button").forEach(x => x.classList.remove("on"));
+    $("text").value = ""; rating = null; who = null; urgent = false;
+    document.querySelectorAll(".choice").forEach(x => x.classList.remove("on"));
+    $("helpbox").classList.add("hidden"); $("helpbtn").classList.remove("hidden"); $("rateblock").classList.remove("hidden");
     $("done").classList.add("hidden"); $("form").classList.remove("hidden");
   });
 </script>

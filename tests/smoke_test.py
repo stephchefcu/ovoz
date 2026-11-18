@@ -126,4 +126,26 @@ pv = anon.get("/privacy?c=second").text
 check("terms show the clinic's name and contact", "Second Clinic" in pv and "room 5" in pv)
 check("old /staff link still works", anon.get("/staff", follow_redirects=False).headers["location"] == "/c/demo/staff")
 
+# ---- PDF nuances: who is speaking, help NOW, privacy check, serious / bribery pointers, no ranking ------
+tw = codes["Therapy ward"]
+pv = anon.post("/api/preview", json={"text": "Единственный анестезиолог ошибся, пациенту 78 лет"}).json()
+check("privacy check flags unique roles and ages", any("Единственный" in f for f in pv["flags"]) and any("78" in f for f in pv["flags"]))
+r = anon.post("/api/report", json={"source": "patient", "ward_code": tw, "text": "Otam nafas ololmayapti, hech kim kelmayapti",
+                                   "lang": "uz", "reporter": "relative", "urgent": True, "agree": True, "terms_version": TV}).json()
+check("help NOW report is urgent", r["urgent"] is True)
+with db() as conn:
+    row = conn.execute("SELECT reporter, urgent FROM reports WHERE case_hash=?", (hash_code(r["case_code"]),)).fetchone()
+check("relative stored as reporter type", row and row["reporter"] == "relative" and row["urgent"] == 1)
+r = anon.post("/api/report", json={"source": "patient", "ward_code": tw, "text": "Palata uchun pul so'rashdi, pora berdik",
+                                   "lang": "uz", "agree": True, "terms_version": TV}).json()
+check("bribery mention flagged for the 1203 pointer", r["bribery"] is True)
+r = anon.post("/api/report", json={"source": "staff", "ward_code": tw, "text": "Wrong patient got an overdose, bleeding followed",
+                                   "lang": "en", "reporter": "staff", "agree": True, "terms_version": TV}).json()
+check("serious harm flagged for the official-channel reminder", r["serious"] is True)
+check("bad reporter type refused", anon.post("/api/report", json={"source": "patient", "ward_code": tw, "text": "matn matn matn",
+      "lang": "uz", "reporter": "doctor", "agree": True, "terms_version": TV}).status_code == 422)
+dd = clinic.get("/api/dashboard").json()
+check("headline metric is problems fixed", "fixed" in dd["kpi"])
+check("wards are listed A-Z, not ranked", [h["label"].lower() for h in dd["heat"]] == sorted(h["label"].lower() for h in dd["heat"]))
+
 sys.exit(1 if check.failed else 0)

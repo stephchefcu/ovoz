@@ -40,7 +40,7 @@
     </div>
     <div>
       <div class="card">
-        <h2>Where reports come from</h2>
+        <h2>Where reports come from <span class="small muted">(A–Z, not a ranking)</span></h2>
         <div id="heat"></div>
       </div>
     </div>
@@ -70,10 +70,12 @@
       Window: last ${d.privacy.window_days} days.`;
 
     const k = d.kpi;
+    // Headline = problems fixed. Report counts are context: more reports usually means a safer culture.
     $("kpis").innerHTML = [
-      ["Reports", k.reports], ["From patients", k.patient], ["From staff", k.staff],
-      ["Linked problems", k.linked_clusters], ["Urgent", k.urgent], ["Open actions", k.open_actions],
-    ].map(([a, b]) => `<div class="kpi"><b>${b}</b><span>${a}</span></div>`).join("");
+      ["Problems fixed", k.fixed, "head"], ["Open actions", k.open_actions], ["Linked problems", k.linked_clusters],
+      ["Urgent", k.urgent], ["Reports", k.reports], ["From patients / staff", k.patient + " / " + k.staff],
+    ].map(([a, b, c]) => `<div class="kpi ${c || ""}"><b>${b}</b><span>${a}</span></div>`).join("") +
+      `<div class="small muted" style="grid-column:1/-1">More reports usually means a safer culture (people trust the system), not more errors. Wards are never ranked by how much they report.</div>`;
 
     $("urgentbox").classList.toggle("hidden", !d.urgent.length);
     $("urgent").innerHTML = d.urgent.map(u => `<div class="quote"><b>${esc(u.label)}</b> · ${esc(u.category)} · ${esc(u.day)}<br>${esc(u.text)}

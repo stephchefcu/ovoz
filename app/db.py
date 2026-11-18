@@ -95,6 +95,7 @@ MIGRATIONS = [
     ("wards", "active", "INTEGER NOT NULL DEFAULT 1"),  # 0 = removed from forms, past reports kept
     ("reports", "clinic_id", "INTEGER"),
     ("actions", "clinic_id", "INTEGER"),
+    ("reports", "reporter", "TEXT"),       # patient / relative / staff (who is speaking, never who they are)
 ]
 
 

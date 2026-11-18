@@ -68,5 +68,6 @@ function setupRecorder(opts) {
   document.addEventListener("langchange", () => {
     if (!button.classList.contains("live")) button.textContent = t("voice_start");
   });
+  button.textContent = t("voice_start");  // the page language was applied before this listener existed
   setStatus("");
 }

@@ -29,8 +29,8 @@
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="/static/i18n.js"></script>
-<script src="/static/review.js"></script>
+<script src="/static/i18n.js?v={{ V }}"></script>
+<script src="/static/review.js?v={{ V }}"></script>
 <script>
   const TERMS_VERSION = {{ TERMS_VERSION|tojson }};
   const $ = id => document.getElementById(id);
