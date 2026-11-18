@@ -48,6 +48,9 @@ CLINIC_NAME = env("CLINIC_NAME")
 CLINIC_CONTACT = env("CLINIC_CONTACT")
 PUBLIC_URL = env("PUBLIC_URL").rstrip("/")
 
+# Shown on /pricing for the Network plan, e.g. a Telegram username or phone (optional).
+SALES_CONTACT = env("SALES_CONTACT")
+
 LLM_BASE_URL = env("LLM_BASE_URL").rstrip("/")
 LLM_API_KEY = env("LLM_API_KEY")
 LLM_MODEL = env("LLM_MODEL")

@@ -2,7 +2,7 @@
 {% from "_icons.html" import icon %}
 {% block nav %}
   {% if is_clinic %}<a href="/dashboard">Dashboard</a><a href="/logout">Log out</a>
-  {% else %}<a href="/login">Clinic login</a><a href="/signup">Sign up</a>{% endif %}
+  {% else %}<a href="/pricing">Pricing</a><a href="/login">Clinic login</a><a href="/signup">Sign up</a>{% endif %}
 {% endblock %}
 {% block content %}
 <div class="wrap">
@@ -29,6 +29,8 @@
       {{ icon("building", 26) }}
       <div style="flex:1"><h2 style="margin-bottom:4px">Clinics</h2>
         <p class="small muted">Sign up, add your departments, print your QR codes. Only your clinic sees your reports.</p>
+        <p class="small muted">Free for small clinics. Larger clinics get the full plan free for 60 days.
+          <a href="/pricing">See pricing</a></p>
         <div class="row"><a class="btn" href="/signup">Sign up your clinic</a><a class="btn ghost" href="/login">Log in</a></div></div>
     </div>
   </div>

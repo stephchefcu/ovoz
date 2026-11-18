@@ -184,6 +184,56 @@ label.agree input { width: 24px; height: 24px; margin-top: 1px; flex: none; acce
 .kpi .ico { color: var(--brand); }
 .card > div:first-child > .step:first-child { margin-top: 0; }
 
+/* ---- pricing ---- */
+.pricing { max-width: 1040px; }
+.trialnote { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; }
+.trialnote .ico { color: var(--brand); margin-top: 1px; }
+.plans { display: grid; gap: 14px; grid-template-columns: 1fr; margin: 16px 0 0; }
+@media (min-width: 860px) { .plans { grid-template-columns: repeat(3, 1fr); align-items: start; } }
+.plan { position: relative; display: flex; flex-direction: column; margin: 0; }
+.plan.main { border: 2px solid var(--brand); box-shadow: 0 8px 24px rgba(37, 99, 235, .10); }
+.plan .badge { align-self: flex-start; margin-bottom: 8px; }
+.plan h2 { font-size: 1.3rem; margin-bottom: 2px; }
+.plan .price { margin: 6px 0 2px; font-size: 1rem; }
+.plan .price b { font-size: 1.75rem; letter-spacing: -.01em; }
+.plan .btn { margin-top: 14px; }
+.plan .contact { margin: 12px 0 0; font-size: .93rem; }
+ul.ticks { list-style: none; padding: 0; margin: 10px 0 0; }
+ul.ticks li { display: flex; gap: 8px; align-items: flex-start; margin: 7px 0; font-size: .95rem; }
+ul.ticks .ico { color: var(--brand); margin-top: 2px; }
+.compare { margin-top: 14px; }
+.tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.compare table { min-width: 520px; }
+.compare th:not(:first-child), .compare td:not(:first-child) { text-align: center; width: 18%; }
+.compare th.main, .compare td.main { background: var(--brand-soft); }
+.compare th.main { color: var(--brand-dark); }
+.compare .yes { color: var(--brand); display: inline-flex; }
+.compare .no { color: #94a3b8; }
+.two-col { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 860px) { .two-col { grid-template-columns: 1fr 1fr; align-items: start; } }
+.two-col .card h2 { display: flex; gap: 8px; align-items: center; }
+.two-col .card h2 .ico { color: var(--brand); }
+.faq h3 { margin-top: 12px; }
+.faq h3:first-of-type { margin-top: 0; }
+.printonly { display: none; }
+.brandline { color: var(--brand); font-weight: 800; font-size: 1.2rem; margin-bottom: 4px; }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body { font-size: 11.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .printonly { display: block; }
+  .pricing { max-width: none; padding: 0; }
+  .hero { padding: 0 0 4px; }
+  .hero h1 { font-size: 1.9rem; }
+  .plans { grid-template-columns: repeat(3, 1fr); gap: 10px; align-items: stretch; }
+  .two-col { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card { padding: 12px 14px; margin-bottom: 10px; break-inside: avoid; }
+  .plan.main { box-shadow: none; }
+  .compare table { min-width: 0; font-size: 10.5px; }
+  .compare th, .compare td { padding: 5px 6px; }
+  .tablewrap { overflow: visible; }
+  body > .wrap.noprint { display: none; }
+}
+
 /* ---- brand (mark: app/static/brand) ---- */
 .topbar > a.brand { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-size: 1.25rem; }
 .brand img { display: block; }

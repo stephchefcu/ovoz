@@ -17,7 +17,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
-from . import ai, analytics, clinics, config, reports, terms, voice
+from . import ai, analytics, clinics, config, pricing, reports, terms, voice
 from .db import db, init_db
 
 APP_DIR = Path(__file__).resolve().parent
@@ -184,6 +184,13 @@ def privacy_page(request: Request, c: str = ""):
         clinic = clinics.by_slug(conn, c) if c else None
     return templates.TemplateResponse(request, "privacy.html", {
         "clinic": clinic, "texts": [terms.terms(lang, clinic) for lang in ("uz", "ru", "en")]})
+
+
+@app.get("/pricing", response_class=HTMLResponse)
+def pricing_page(request: Request, lang: str = ""):
+    return templates.TemplateResponse(request, "pricing.html", {
+        "texts": pricing.all_texts(), "show": lang if lang in ("uz", "ru", "en") else "uz",
+        "contact": config.SALES_CONTACT, "is_clinic": current_clinic(request) is not None})
 
 
 @app.get("/case", response_class=HTMLResponse)
