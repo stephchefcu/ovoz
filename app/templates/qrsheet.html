@@ -20,30 +20,29 @@
       <a href="/settings" data-i18n="qr_add">Add them in Settings first.</a></p>{% endif %}
   </div>
 
-  {# One poster = one QR code. Uzbek first, Russian below; the department name at the bottom. #}
+  {# One poster = one QR code, in the language chosen at the top (print once per language if you need several). #}
   <div class="posters">
     {% for w in wards %}
     <div class="poster">
       <img class="poster-logo" src="/static/brand/wordmark.svg?v={{ V }}" alt="Ovoz" width="108" height="28">
-      <div class="poster-title">Fikringizni anonim bildiring</div>
-      <div class="poster-sub">Оставьте отзыв анонимно</div>
+      <div class="poster-title" data-i18n="po_title">Fikringizni anonim bildiring</div>
+      <div class="poster-sub" data-i18n="po_sub">Ismingiz kerak emas</div>
       <div class="poster-qr">{{ w.svg|safe }}</div>
-      <div class="poster-scan">Kamera bilan skanerlang · Наведите камеру</div>
+      <div class="poster-scan" data-i18n="po_scan">Telefon kamerasi bilan skanerlang</div>
       <div class="poster-place">
-        <b>{{ w.name_uz or w.name }}</b>
-        {% if w.name_ru and w.name_ru != (w.name_uz or w.name) %}<span>{{ w.name_ru }}</span>{% endif %}
+        <b data-name-en="{{ w.name }}" data-name-uz="{{ w.name_uz or '' }}" data-name-ru="{{ w.name_ru or '' }}">{{ w.name_uz or w.name }}</b>
         <small>{{ clinic.name }}</small>
       </div>
     </div>
     {% endfor %}
     {% if wards %}
     <div class="poster staff">
-      <div class="poster-band">Xodimlar uchun · Для сотрудников</div>
+      <div class="poster-band" data-i18n="po_staff_band">Xodimlar uchun</div>
       <img class="poster-logo" src="/static/brand/wordmark.svg?v={{ V }}" alt="Ovoz" width="108" height="28">
-      <div class="poster-title">Xatolik haqida anonim xabar</div>
-      <div class="poster-sub">Сообщите об ошибке анонимно</div>
+      <div class="poster-title" data-i18n="po_staff_title">Xatolik haqida anonim xabar</div>
+      <div class="poster-sub" data-i18n="po_staff_sub">Hech kim ayblanmaydi</div>
       <div class="poster-qr">{{ staff_svg|safe }}</div>
-      <div class="poster-scan">Kamera bilan skanerlang · Наведите камеру</div>
+      <div class="poster-scan" data-i18n="po_scan">Telefon kamerasi bilan skanerlang</div>
       <div class="poster-place"><small>{{ clinic.name }}</small></div>
     </div>
     {% endif %}
