@@ -21,7 +21,7 @@
 </div>
 {% endblock %}
 {% block content %}{% endblock %}
-<div class="wrap noprint small muted" style="margin-top:24px;margin-bottom:24px">
+<div class="wrap noprint small muted {% block footclass %}{% endblock %}" style="margin-top:24px;margin-bottom:24px">
   <a href="/privacy{% if clinic is defined and clinic %}?c={{ clinic.slug }}{% endif %}" data-i18n="terms_link">Terms & privacy</a>
 </div>
 {% block scripts %}{% endblock %}
