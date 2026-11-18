@@ -3,20 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Clinic Safety Platform{% endblock %}</title>
+  <title>{% block title %}Ovoz{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css">
   {% block head %}{% endblock %}
 </head>
 <body class="{% block bodyclass %}{% endblock %}">
 {% block topbar %}
 <div class="topbar">
-  <a href="/">Clinic Safety Platform</a>
+  <a href="/">Ovoz</a>
   <div class="nav">
     {% block nav %}{% endblock %}
   </div>
 </div>
 {% endblock %}
 {% block content %}{% endblock %}
+<div class="wrap noprint small muted" style="margin-top:24px;margin-bottom:24px">
+  <a href="/privacy" data-i18n="terms_link">Terms & privacy</a>
+</div>
 {% block scripts %}{% endblock %}
 </body>
 </html>

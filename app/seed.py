@@ -25,6 +25,23 @@ WARDS = [
     ("Emergency department", "Emergency department"),
 ]
 
+# Department names shown to patients and staff in their language (English name -> (Uzbek, Russian)).
+WARD_NAMES = {
+    "Surgery ward A": ("Jarrohlik bo'limi A", "Хирургическое отделение А"),
+    "Surgery ward B": ("Jarrohlik bo'limi B", "Хирургическое отделение Б"),
+    "Therapy ward": ("Terapiya bo'limi", "Терапевтическое отделение"),
+    "Maternity ward": ("Tug'ruq bo'limi", "Родильное отделение"),
+    "Pediatric ward": ("Pediatriya bo'limi", "Педиатрическое отделение"),
+    "Emergency department": ("Shoshilinch yordam bo'limi", "Отделение неотложной помощи"),
+}
+
+
+def fill_ward_translations(conn):
+    """Add Uzbek / Russian names to the demo wards where they are missing (keeps codes, so QR codes stay valid)."""
+    for name, (uz, ru) in WARD_NAMES.items():
+        conn.execute("UPDATE wards SET name_uz=COALESCE(name_uz, ?), name_ru=COALESCE(name_ru, ?) WHERE name=?",
+                     (uz, ru, name))
+
 # (source, ward, lang, text, days_ago_range or 'recent')
 STORY = [
     # --- patients, Surgery ward A: nobody came at night -------------------------------------
@@ -83,6 +100,7 @@ def seed(reset: bool = True):
             code = secrets.token_urlsafe(6)
             codes[name] = code
             conn.execute("INSERT INTO wards (code, name, unit) VALUES (?,?,?)", (code, name, unit))
+        fill_ward_translations(conn)
 
         demo_done = False
         for item in STORY:

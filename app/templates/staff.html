@@ -12,7 +12,7 @@
     <div class="card">
       <label for="ward" data-i18n="p_ward"></label>
       <select id="ward">
-        {% for w in wards %}<option value="{{ w.code }}">{{ w.name }}</option>{% endfor %}
+        {% for w in wards %}<option value="{{ w.code }}" data-name-en="{{ w.name }}" data-name-uz="{{ w.name_uz or '' }}" data-name-ru="{{ w.name_ru or '' }}">{{ w.name }}</option>{% endfor %}
       </select>
 
       <label data-i18n="s_type"></label>
@@ -47,6 +47,8 @@
     </div>
   </div>
 
+  <div id="review" class="card hidden"></div>
+
   <div id="done" class="hidden">
     <h1 data-i18n="done_title"></h1>
     <p data-i18n="done_code"></p>
@@ -59,28 +61,46 @@
 {% block scripts %}
 <script src="/static/i18n.js"></script>
 <script src="/static/record.js"></script>
+<script src="/static/review.js"></script>
 <script>
+  const TERMS_VERSION = {{ TERMS_VERSION|tojson }};
   const $ = id => document.getElementById(id);
   document.addEventListener("DOMContentLoaded", () => {
     setupRecorder({ button: $("recbtn"), status: $("recstatus"), textarea: $("text") });
   });
+  function showError(msg) { $("error").textContent = msg; $("error").classList.remove("hidden"); }
+  const selText = id => $(id).options[$(id).selectedIndex].textContent;
+
+  // Step 1: "Send" shows exactly what will be stored. Step 2: they tick "I agree" and send.
   $("send").addEventListener("click", async () => {
     const text = $("text").value.trim();
     $("error").classList.add("hidden");
-    if (text.length < 5) { $("error").textContent = t("too_short"); $("error").classList.remove("hidden"); return; }
-    $("send").disabled = true; $("send").textContent = t("sending");
-    try {
-      const r = await fetch("/api/report", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: "staff", ward_code: $("ward").value, text, lang: LANG,
-          harm: $("harm").value, near_miss: $("type").value === "near" }) });
-      if (!r.ok) throw new Error(r.status);
-      const j = await r.json();
-      $("code").textContent = j.case_code;
-      $("form").classList.add("hidden"); $("done").classList.remove("hidden");
-    } catch (e) {
-      $("error").textContent = t("err"); $("error").classList.remove("hidden");
-    }
-    $("send").disabled = false; $("send").textContent = t("submit");
+    if (text.length < 5) return showError(t("too_short"));
+    $("send").disabled = true;
+    let p;
+    try { p = await previewText(text); } catch (e) { $("send").disabled = false; return showError(t("err")); }
+    $("send").disabled = false;
+    const near = $("type").value === "near";
+    showReview({
+      box: $("review"), hide: [$("form")], masked: p.masked,
+      rows: () => [
+        [t("p_ward"), selText("ward")],
+        [t("rv_role"), t("role_staff")],
+        [t("rv_type"), selText("type")],
+        [t("s_harm"), selText("harm")],
+        [t("rv_date"), partOfDay(p) + " (" + t("rv_staffdate") + ")"],
+        [t("rv_lang"), langName()],
+      ],
+      onAgree: async () => {
+        const r = await fetch("/api/report", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: "staff", ward_code: $("ward").value, text, lang: LANG,
+            harm: $("harm").value, near_miss: near, agree: true, terms_version: TERMS_VERSION }) });
+        if (!r.ok) throw new Error(r.status);
+        const j = await r.json();
+        $("code").textContent = j.case_code;
+        $("review").classList.add("hidden"); $("done").classList.remove("hidden");
+      },
+    });
   });
   $("again").addEventListener("click", () => {
     $("text").value = ""; $("done").classList.add("hidden"); $("form").classList.remove("hidden");

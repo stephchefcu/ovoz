@@ -25,11 +25,14 @@
       <div id="ok" class="note ok hidden"></div>
     </div>
   </div>
+  <div id="review" class="card hidden"></div>
 </div>
 {% endblock %}
 {% block scripts %}
 <script src="/static/i18n.js"></script>
+<script src="/static/review.js"></script>
 <script>
+  const TERMS_VERSION = {{ TERMS_VERSION|tojson }};
   const $ = id => document.getElementById(id);
   const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   async function load() {
@@ -49,11 +52,23 @@
   }
   $("open").addEventListener("click", load);
   $("code").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); load(); } });
+  // Replies get the same "check what will be sent, then agree" step as reports.
   $("send").addEventListener("click", async () => {
     const body = $("reply").value.trim(); if (!body) return;
-    const r = await fetch("/api/case/reply", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: $("code").value, body }) });
-    if (r.ok) { $("reply").value = ""; $("ok").textContent = t("c_sent"); $("ok").classList.remove("hidden"); load(); $("ok").classList.remove("hidden"); }
+    let p;
+    try { p = await previewText(body); } catch (e) { return; }
+    showReview({
+      box: $("review"), hide: [$("thread")], masked: p.masked, rows: () => [],
+      onAgree: async () => {
+        const r = await fetch("/api/case/reply", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: $("code").value, body, agree: true, terms_version: TERMS_VERSION }) });
+        if (!r.ok) throw new Error(r.status);
+        $("review").classList.add("hidden"); $("thread").classList.remove("hidden");
+        $("reply").value = "";
+        await load();
+        $("ok").textContent = t("c_sent"); $("ok").classList.remove("hidden");
+      },
+    });
   });
   document.addEventListener("langchange", () => { if (!$("thread").classList.contains("hidden")) load(); });
 </script>

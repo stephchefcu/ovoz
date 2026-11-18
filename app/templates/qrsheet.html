@@ -12,8 +12,8 @@
   <div style="margin-top:16px">
     {% for w in wards %}
       <div class="qr">
-        <div style="font-weight:700;font-size:1.05rem">{{ w.name }}</div>
-        <div class="small muted">{{ w.unit }}</div>
+        <div style="font-weight:700;font-size:1.05rem">{{ w.name_uz or w.name }}</div>
+        <div class="small muted">{{ w.name_ru or w.unit }}</div>
         {{ w.svg|safe }}
         <div style="font-weight:600">Scan to tell us anonymously<br>Anonim xabar bering · Сообщите анонимно</div>
       </div>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ ward.name }}{% endblock %}
+{% block title %}{{ ward.name_uz or ward.name }} · Ovoz{% endblock %}
 {% block nav %}
   <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
 {% endblock %}
@@ -11,7 +11,8 @@
     <div class="note warn small" data-i18n="emergency"></div>
 
     <div class="card">
-      <div class="muted small"><span data-i18n="p_ward"></span>: <b>{{ ward.name }}</b></div>
+      <div class="muted small"><span data-i18n="p_ward"></span>:
+        <b id="wardname" data-name-en="{{ ward.name }}" data-name-uz="{{ ward.name_uz or '' }}" data-name-ru="{{ ward.name_ru or '' }}">{{ ward.name }}</b></div>
 
       <label data-i18n="p_rating"></label>
       <div class="stars" id="stars">
@@ -39,6 +40,8 @@
     </div>
   </div>
 
+  <div id="review" class="card hidden"></div>
+
   <div id="done" class="hidden">
     <h1 data-i18n="done_title"></h1>
     <div id="urgentnote" class="note warn hidden" data-i18n="done_urgent"></div>
@@ -52,8 +55,10 @@
 {% block scripts %}
 <script src="/static/i18n.js"></script>
 <script src="/static/record.js"></script>
+<script src="/static/review.js"></script>
 <script>
   const WARD = {{ ward.code|tojson }};
+  const TERMS_VERSION = {{ TERMS_VERSION|tojson }};
   let rating = null;
   const $ = id => document.getElementById(id);
   document.querySelectorAll("#stars button").forEach(b => b.addEventListener("click", () => {
@@ -63,23 +68,37 @@
   document.addEventListener("DOMContentLoaded", () => {
     setupRecorder({ button: $("recbtn"), status: $("recstatus"), textarea: $("text") });
   });
+  function showError(msg) { $("error").textContent = msg; $("error").classList.remove("hidden"); }
+
+  // Step 1: "Send" shows exactly what will be stored. Step 2: they tick "I agree" and send.
   $("send").addEventListener("click", async () => {
     const text = $("text").value.trim();
     $("error").classList.add("hidden");
-    if (text.length < 5) { $("error").textContent = t("too_short"); $("error").classList.remove("hidden"); return; }
-    $("send").disabled = true; $("send").textContent = t("sending");
-    try {
-      const r = await fetch("/api/report", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: "patient", ward_code: WARD, text, lang: LANG, rating }) });
-      if (!r.ok) throw new Error(r.status);
-      const j = await r.json();
-      $("code").textContent = j.case_code;
-      $("urgentnote").classList.toggle("hidden", !j.urgent);
-      $("form").classList.add("hidden"); $("done").classList.remove("hidden");
-    } catch (e) {
-      $("error").textContent = t("err"); $("error").classList.remove("hidden");
-    }
-    $("send").disabled = false; $("send").textContent = t("submit");
+    if (text.length < 5) return showError(t("too_short"));
+    $("send").disabled = true;
+    let p;
+    try { p = await previewText(text); } catch (e) { $("send").disabled = false; return showError(t("err")); }
+    $("send").disabled = false;
+    showReview({
+      box: $("review"), hide: [$("form")], masked: p.masked,
+      rows: () => [
+        [t("p_ward"), $("wardname").textContent],
+        [t("rv_role"), t("role_patient")],
+        [t("rv_rating"), rating ? rating + "★" : t("rv_none")],
+        [t("rv_date"), partOfDay(p)],
+        [t("rv_lang"), langName()],
+      ],
+      onAgree: async () => {
+        const r = await fetch("/api/report", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: "patient", ward_code: WARD, text, lang: LANG, rating,
+                                 agree: true, terms_version: TERMS_VERSION }) });
+        if (!r.ok) throw new Error(r.status);
+        const j = await r.json();
+        $("code").textContent = j.case_code;
+        $("urgentnote").classList.toggle("hidden", !j.urgent);
+        $("review").classList.add("hidden"); $("done").classList.remove("hidden");
+      },
+    });
   });
   $("again").addEventListener("click", () => {
     $("text").value = ""; rating = null;
