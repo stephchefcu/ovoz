@@ -1,37 +1,49 @@
 {% extends "base.html" %}
 {% block title %}Sign up your clinic · Ovoz{% endblock %}
+{% block nav %}
+  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+{% endblock %}
 {% block content %}
 <div class="wrap" style="max-width:520px">
-  <h1>Sign up your clinic</h1>
-  <p class="muted">Your clinic gets its own login, departments, QR codes and dashboard. Other clinics never see your data.</p>
-  <div class="note info">You start with the full Klinika plan, free for 60 days. After that it stays free for up to 3
-    departments. <a href="/pricing">See pricing</a></div>
+  <h1 data-i18n="su_title">Sign up your clinic</h1>
+  <p class="muted" data-i18n="su_sub">Your clinic gets its own login, departments, QR codes and dashboard. Other clinics never see your data.</p>
+  <div class="note info"><span data-i18n="su_trial">You start with the full Klinika plan, free for 60 days. After that it
+    stays free for up to 3 departments.</span> <a href="/pricing" data-i18n="su_pricing">See pricing</a></div>
   <form class="card" method="post" action="/signup">
-    <label for="name">Clinic name</label>
+    <label for="name" data-i18n="su_name">Clinic name</label>
     <input id="name" name="name" required minlength="3" maxlength="120" value="{{ form.name or '' }}"
-           placeholder="e.g. Toshkent shahar 5-klinik shifoxonasi">
+           data-i18n-ph="su_name_ph" placeholder="e.g. Toshkent shahar 5-klinik shifoxonasi">
 
-    <label for="slug">Clinic code <span class="small muted">(for login, links and the Telegram bot)</span></label>
-    <input id="slug" name="slug" maxlength="30" pattern="[a-z0-9][a-z0-9-]{1,28}[a-z0-9]" value="{{ form.slug or '' }}"
-           placeholder="made from the name if left empty, e.g. toshkent-5">
+    <label for="slug"><span data-i18n="clinic_code">Clinic code</span>
+      <span class="small muted" data-i18n="su_code_hint">(for login, links and the Telegram bot)</span></label>
+    <input id="slug" name="slug" maxlength="30" pattern="[a-z0-9][a-z0-9\-]{1,28}[a-z0-9]" value="{{ form.slug or '' }}"
+           data-i18n-ph="su_code_ph" placeholder="made from the name if left empty, e.g. toshkent-5">
 
-    <label for="contact">Contact for patients <span class="small muted">(optional, shown in the privacy terms)</span></label>
+    <label for="contact"><span data-i18n="su_contact">Contact for patients</span>
+      <span class="small muted" data-i18n="su_contact_hint">(optional, shown in the privacy terms)</span></label>
     <input id="contact" name="contact" maxlength="200" value="{{ form.contact or '' }}"
-           placeholder="e.g. quality office, room 101, +998 71 000 00 00">
+           data-i18n-ph="su_contact_ph" placeholder="e.g. quality office, room 101, +998 71 000 00 00">
 
-    <label for="password">Password <span class="small muted">(at least 8 characters)</span></label>
+    <label for="password"><span data-i18n="password">Password</span>
+      <span class="small muted" data-i18n="su_pw_hint">(at least 8 characters)</span></label>
     <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
-    <label for="password2">Password again</label>
+    <label for="password2" data-i18n="su_pw2">Password again</label>
     <input type="password" id="password2" name="password2" required minlength="8" autocomplete="new-password">
 
     {% if need_code %}
-    <label for="signup_code">Sign-up code <span class="small muted">(from the Ovoz team)</span></label>
+    <label for="signup_code"><span data-i18n="su_signup_code">Sign-up code</span>
+      <span class="small muted" data-i18n="su_signup_code_hint">(from the Ovoz team)</span></label>
     <input id="signup_code" name="signup_code" required>
     {% endif %}
 
-    {% if error %}<div class="note bad" style="margin-top:12px">{{ error }}</div>{% endif %}
-    <div class="row" style="margin-top:14px"><button type="submit">Create clinic</button></div>
-    <p class="small muted" style="margin-top:12px">Already signed up? <a href="/login">Log in</a></p>
+    {% if error %}<div class="note bad" style="margin-top:12px" data-i18n="{{ error_key }}" data-i18n-arg="{{ error_arg }}">{{ error }}</div>{% endif %}
+    <div class="row" style="margin-top:14px"><button type="submit" data-i18n="su_btn">Create clinic</button></div>
+    <p class="small muted" style="margin-top:12px"><span data-i18n="su_have">Already signed up?</span>
+      <a href="/login" data-i18n="li_btn">Log in</a></p>
   </form>
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/i18n.js?v={{ V }}"></script>
+<script src="/static/i18n-clinic.js?v={{ V }}"></script>
 {% endblock %}

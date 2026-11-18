@@ -1,16 +1,20 @@
 {% extends "base.html" %}
 {% block title %}QR codes · {{ clinic.name }} · Ovoz{% endblock %}
-{% block nav %}<a href="/dashboard">Dashboard</a><a href="/settings">Settings</a>{% endblock %}
+{% block nav %}
+  <div class="lang noprint"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+  <a href="/dashboard" data-i18n="nav_dashboard">Dashboard</a><a href="/settings" data-i18n="nav_settings">Settings</a>
+{% endblock %}
 {% block content %}
 <div class="wrap wide">
   <div class="noprint">
-    <h1>Printable QR codes</h1>
-    <p class="muted">{{ clinic.name }}. One code per <b>department</b> (not per room), so a report cannot point to a single
-      patient. Print this page and post each code where patients and relatives can see it.
-      {% if bot %}The small code opens the Telegram bot already set to that department.{% endif %}
-      The last poster is for the staff room.</p>
-    <button onclick="window.print()">Print</button>
-    {% if not wards %}<p class="note warn">No departments yet. <a href="/settings">Add them in Settings</a> first.</p>{% endif %}
+    <h1 data-i18n="qr_title">Printable QR codes</h1>
+    <p class="muted">{{ clinic.name }}. <span data-i18n="qr_sub">One code per department (not per room), so a report
+      cannot point to a single patient. Print this page and post each code where patients and relatives can see it.</span>
+      {% if bot %}<span data-i18n="qr_tg">The small code opens the Telegram bot already set to that department.</span>{% endif %}
+      <span data-i18n="qr_staff">The last poster is for the staff room.</span></p>
+    <button onclick="window.print()" data-i18n="qr_print">Print</button>
+    {% if not wards %}<p class="note warn"><span data-i18n="qr_none">No departments yet.</span>
+      <a href="/settings" data-i18n="qr_add">Add them in Settings first.</a></p>{% endif %}
   </div>
   <div style="margin-top:16px">
     {% for w in wards %}
@@ -34,6 +38,10 @@
       {% if staff_tg_svg %}<div class="tgqr">{{ staff_tg_svg|safe }}<div class="small">Telegram</div></div>{% endif %}
     </div>
   </div>
-  <p class="small muted noprint">Clinic code for the Telegram bot: <code>{{ clinic.slug }}</code></p>
+  <p class="small muted noprint"><span data-i18n="qr_code">Clinic code for the Telegram bot:</span> <code>{{ clinic.slug }}</code></p>
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/i18n.js?v={{ V }}"></script>
+<script src="/static/i18n-clinic.js?v={{ V }}"></script>
 {% endblock %}

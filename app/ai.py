@@ -439,18 +439,261 @@ _RCA_FALLBACK = {
     },
 }
 
+# Theme names and rule-based root-cause suggestions in Uzbek and Russian (English is above).
+# NOTE: have a native speaker review this wording before real use.
+THEMES_I18N = {
+    "uz": {
+        "continuity": "Parvarish uzluksizligi va tezkorlik", "medication": "Dori xavfsizligi",
+        "diagnosis": "Tahlillar va tashxis", "hygiene": "Gigiyena va infeksiya nazorati",
+        "physical_safety": "Yiqilish va jismoniy xavfsizlik", "facilities": "Jihozlar, ovqat va sharoit",
+        "communication": "Muloqot va hurmat", "pain_care": "Og'riqni davolash", "privacy": "Maxfiylik",
+        "billing": "To'lovlar", "other": "Boshqa",
+    },
+    "ru": {
+        "continuity": "Непрерывность ухода и отклик", "medication": "Безопасность лекарств",
+        "diagnosis": "Анализы и диагностика", "hygiene": "Гигиена и инфекционный контроль",
+        "physical_safety": "Падения и физическая безопасность", "facilities": "Оборудование, питание и условия",
+        "communication": "Общение и уважение", "pain_care": "Обезболивание", "privacy": "Конфиденциальность",
+        "billing": "Оплата", "other": "Другое",
+    },
+}
+
+_RCA_SUMMARY = {
+    "en": "Likely process causes behind recurring '{theme}' reports in {unit}.",
+    "uz": "{unit} bo'yicha takrorlanuvchi «{theme}» murojaatlarining ehtimoliy jarayon sabablari.",
+    "ru": "Вероятные причины в процессах, стоящие за повторяющимися обращениями «{theme}» в {unit}.",
+}
+
+_RCA_FALLBACK_I18N = {
+    "uz": {
+        "continuity": {
+            "whys": [
+                "Murojaatlarda parvarish kechikishi, chaqiruvlarga javob berilmasligi yoki smena almashganda ma'lumot yo'qolishi aytilgan.",
+                "Nega? Smenalar o'rtasida topshirish norasmiy va tartibsiz bo'lishi mumkin, shuning uchun muhim tafsilotlar tushib qoladi.",
+                "Nega? Topshirish uchun standart ro'yxat yoki ajratilgan vaqt yo'q, tungi smenada xodim kam bo'lishi mumkin.",
+                "Nega? O'sha soatlarda xodimlar soni va ish hajmi bemorlar soniga mos kelmasligi mumkin.",
+            ],
+            "fixes": [
+                "Har bir smena almashinuvida qisqa tartibli topshirish ro'yxatini joriy qiling (masalan, SBAR).",
+                "Tungi smenadagi xodimlar sonini bemorlar soniga qarab qayta ko'rib chiqing.",
+                "Chaqiruv tugmasiga javob berish vaqti uchun maqsad belgilang va uni har hafta bo'limda kuzating.",
+            ],
+        },
+        "medication": {
+            "whys": [
+                "Murojaatlarda dori kechikib, noto'g'ri dozada yoki boshqa bemorga berilgani aytilgan.",
+                "Nega? Dori berishdan oldingi tekshiruv qat'iy qadamga emas, xotiraga tayanishi mumkin.",
+                "Nega? Bir-biriga o'xshash dorilar, tushunarsiz buyurtmalar yoki chalg'ishlar xatoni ko'paytiradi.",
+            ],
+            "fixes": [
+                "Yuqori xavfli dorilar uchun ikki kishilik tekshiruvni joriy qiling.",
+                "O'xshash dorilarni belgilab, alohida saqlang; tayyorlash uchun chalg'itilmaydigan vaqt ajrating.",
+                "Dori buyurtmalarini aniq va standart qiling (bosma yoki elektron).",
+            ],
+        },
+        "diagnosis": {
+            "whys": [
+                "Murojaatlarda tahlil yoki natijalar kechikkani, yo'qolgani yoki aralashib ketgani aytilgan.",
+                "Nega? Buyurilgan tahlillar va kelgan natijalar uchun yagona kuzatuv ro'yxati bo'lmasligi mumkin.",
+                "Nega? Natijani kuzatish kimning vazifasi ekani jamoalar o'rtasida aniq emas.",
+            ],
+            "fixes": [
+                "Kutilayotgan tahlillarning kundalik ro'yxatini yuriting, har bir natija uchun mas'ul shaxsni belgilang.",
+                "Namunalar va natija varaqalarida bemor shaxsini ikki marta tekshirishni qo'shing.",
+            ],
+        },
+        "hygiene": {
+            "whys": [
+                "Murojaatlarda tozalik yoki infeksiya nazorati muammolari aytilgan.",
+                "Nega? Tozalash jadvali va vositalar bo'limning ehtiyojiga mos kelmasligi mumkin.",
+                "Nega? Tekshiruv uchun mas'uliyat aniq emas va nazorat qilinmaydi.",
+            ],
+            "fixes": [
+                "Har bir bo'lim uchun tozalash jadvalini e'lon qiling va kunlik imzo bilan tekshiring.",
+                "Sovun, antiseptik va qo'lqoplar doim bo'lishini ta'minlang; qo'l gigiyenasini har oy tekshiring.",
+            ],
+        },
+        "physical_safety": {
+            "whys": [
+                "Murojaatlarda yiqilish yoki jismoniy xavflar aytilgan.",
+                "Nega? Pol, karavot panjaralari yoki yoritish xavfli bo'lishi, xavf ostidagi bemorlar aniqlanmasligi mumkin.",
+            ],
+            "fixes": [
+                "Qabul paytida yiqilish xavfini baholang va yuqori xavfli bemorlarni belgilang.",
+                "Bo'limni xavfsizlik nuqtai nazaridan aylanib chiqib, topilgan xavflarni bartaraf eting (ho'l pol, yoritish, singan panjara).",
+            ],
+        },
+        "facilities": {
+            "whys": [
+                "Murojaatlarda buzilgan jihozlar yoki ovqat va sharoit yomonligi aytilgan.",
+                "Nega? Nosozliklar tez xabar qilinmaydi yoki ta'mirlash uzoq davom etadi.",
+            ],
+            "fixes": [
+                "Ta'mirlash muddati va mas'uli ko'rsatilgan oddiy nosozliklar jurnalini yarating.",
+                "Isitish, suv va ovqat yetkazilishini har hafta tekshiring va hisobot bering.",
+            ],
+        },
+        "communication": {
+            "whys": [
+                "Murojaatlarda bemorlar hurmatsizlik yoki ma'lumot yetishmasligini his qilgani aytilgan.",
+                "Nega? Xodimlarning ish yuki tushuntirishga vaqt qoldirmaydi va buning oddiy standarti yo'q.",
+            ],
+            "fixes": [
+                "Har smenada bemor va qarindoshlarga parvarishni tushuntirishning qisqa standartini kelishib oling.",
+                "Bemorlar fikrini bo'lim jamoasi bilan muntazam baham ko'ring: shaxslarga emas, jarayonga e'tibor bering.",
+            ],
+        },
+        "pain_care": {
+            "whys": [
+                "Murojaatlarda og'riqqa o'z vaqtida e'tibor berilmagani aytilgan.",
+                "Nega? Og'riq muntazam baholanmasligi yoki og'riq qoldiruvchi bera oladigan xodimni topish qiyin bo'lishi mumkin.",
+            ],
+            "fixes": ["Muntazam ko'rik paytida og'riqni tekshirishni qo'shing va qayd eting."],
+        },
+        "privacy": {
+            "whys": [
+                "Murojaatlarda maxfiylik hurmat qilinmagani aytilgan.",
+                "Nega? To'siqlar yoki alohida joy yetishmasligi yoki bemorlarni ochiq joyda muhokama qilish odat bo'lib qolgan bo'lishi mumkin.",
+            ],
+            "fixes": ["Ko'rik va suhbatlar uchun to'siq yoki alohida joy ajrating; jamoalarga qoidalarni eslating."],
+        },
+        "billing": {
+            "whys": [
+                "Murojaatlarda tushunarsiz to'lovlar yoki norasmiy to'lov so'ralgani aytilgan.",
+                "Nega? Bemorlar rasmiy narxlarni yoki kimdan so'rashni bilmasligi mumkin.",
+            ],
+            "fixes": ["Rasmiy narxlarni ko'rinadigan joyga osib qo'ying va har qanday to'lov uchun yozma tafsilot bering."],
+        },
+        "other": {
+            "whys": ["Murojaatlarda aniq umumiy mavzu yo'q."],
+            "fixes": ["Murojaatlarni alohida ko'rib chiqing va bo'lim jamoasi bilan qonuniyat izlang."],
+        },
+    },
+    "ru": {
+        "continuity": {
+            "whys": [
+                "В обращениях говорится о задержках в уходе, вызовах без ответа или потере информации при смене.",
+                "Почему? Передача смены, вероятно, неформальная и без структуры, поэтому важные детали теряются.",
+                "Почему? Нет стандартного чек-листа или выделенного времени на передачу, ночью мало персонала.",
+                "Почему? Численность персонала и нагрузка в эти часы, вероятно, не соответствуют числу пациентов.",
+            ],
+            "fixes": [
+                "Ввести короткий структурированный чек-лист передачи смены (например, SBAR).",
+                "Пересмотреть численность ночной смены с учётом числа пациентов.",
+                "Установить норматив времени ответа на вызов и еженедельно отслеживать его в отделении.",
+            ],
+        },
+        "medication": {
+            "whys": [
+                "В обращениях говорится о лекарствах, выданных с опозданием, в неверной дозе или не тому пациенту.",
+                "Почему? Проверка перед выдачей лекарства может зависеть от памяти, а не от обязательного шага.",
+                "Почему? Похожие препараты, неясные назначения или отвлечения повышают риск ошибки.",
+            ],
+            "fixes": [
+                "Ввести двойную проверку двумя сотрудниками для препаратов высокого риска.",
+                "Маркировать и хранить отдельно похожие препараты; выделить время на подготовку без отвлечений.",
+                "Сделать назначения разборчивыми и стандартными (печатными или электронными).",
+            ],
+        },
+        "diagnosis": {
+            "whys": [
+                "В обращениях говорится о задержанных, пропущенных или перепутанных анализах и результатах.",
+                "Почему? Может не быть единого списка назначенных анализов и полученных результатов.",
+                "Почему? Неясно, какая команда отвечает за отслеживание результата.",
+            ],
+            "fixes": [
+                "Вести ежедневный список ожидаемых анализов с ответственным за каждый результат.",
+                "Добавить двойную проверку личности пациента на пробах и бланках результатов.",
+            ],
+        },
+        "hygiene": {
+            "whys": [
+                "В обращениях говорится о проблемах с чистотой или инфекционным контролем.",
+                "Почему? График уборки и расходные материалы могут не соответствовать нагрузке отделения.",
+                "Почему? Ответственность за проверки неясна и не контролируется.",
+            ],
+            "fixes": [
+                "Вывесить график уборки для каждого отделения и проверять его ежедневной подписью.",
+                "Обеспечить постоянный запас мыла, антисептика и перчаток; ежемесячно проверять гигиену рук.",
+            ],
+        },
+        "physical_safety": {
+            "whys": [
+                "В обращениях говорится о падениях или физических опасностях.",
+                "Почему? Пол, поручни кроватей или освещение могут быть небезопасны, а пациенты из группы риска не выявляются.",
+            ],
+            "fixes": [
+                "Оценивать риск падения при поступлении и отмечать пациентов высокого риска.",
+                "Устранять опасности, найденные при обходе отделения (мокрый пол, освещение, сломанные поручни).",
+            ],
+        },
+        "facilities": {
+            "whys": [
+                "В обращениях говорится о сломанном оборудовании или плохом питании и условиях.",
+                "Почему? О неисправностях сообщают не сразу, или ремонт занимает слишком много времени.",
+            ],
+            "fixes": [
+                "Завести простой журнал неисправностей со сроком ремонта и ответственным.",
+                "Еженедельно проверять отопление, воду и доставку питания и отчитываться об этом.",
+            ],
+        },
+        "communication": {
+            "whys": [
+                "В обращениях говорится, что пациенты чувствовали неуважение или им не хватало информации.",
+                "Почему? Нагрузка оставляет мало времени на объяснения, и для этого нет простого стандарта.",
+            ],
+            "fixes": [
+                "Согласовать короткий стандарт объяснения ухода пациентам и родственникам в каждую смену.",
+                "Регулярно обсуждать отзывы пациентов с командой отделения, фокусируясь на процессе, а не на людях.",
+            ],
+        },
+        "pain_care": {
+            "whys": [
+                "В обращениях говорится, что боль не снимали вовремя.",
+                "Почему? Боль может не оцениваться регулярно, или сотрудника, который может дать обезболивающее, трудно найти.",
+            ],
+            "fixes": ["Добавить оценку боли в регулярные обходы и записывать её."],
+        },
+        "privacy": {
+            "whys": [
+                "В обращениях говорится о несоблюдении конфиденциальности.",
+                "Почему? Может не хватать ширм или отдельного помещения, или обсуждать пациентов при посторонних стало привычкой.",
+            ],
+            "fixes": ["Обеспечить ширмы или отдельное место для осмотров и бесед; напомнить командам правила."],
+        },
+        "billing": {
+            "whys": [
+                "В обращениях говорится о непонятных счетах или просьбах о неофициальной оплате.",
+                "Почему? Пациенты могут не знать официальных цен или к кому обратиться.",
+            ],
+            "fixes": ["Чётко вывесить официальные цены и выдавать пациентам письменную расшифровку любых платежей."],
+        },
+        "other": {
+            "whys": ["У обращений нет явной общей темы."],
+            "fixes": ["Рассмотреть обращения по отдельности и поискать закономерность вместе с командой отделения."],
+        },
+    },
+}
+
 _RCA_SYSTEM = (
     "You help a hospital quality officer find root causes from anonymous reports. Use just-culture thinking: "
     "focus on systems and processes, never on individuals, and never assign blame. Reply with JSON only: "
     '{"summary": one sentence, "whys": [3-5 short strings forming a 5-whys chain], "fixes": [2-4 concrete, '
-    "practical process fixes]}. English."
+    "practical process fixes]}. Write in {language}."
 )
+_LANG_NAMES = {"en": "English", "uz": "Uzbek (Latin script)", "ru": "Russian"}
 
 
-def rca(theme: str, unit_label: str, patient_texts, staff_summaries):
-    fb = _RCA_FALLBACK.get(theme, _RCA_FALLBACK["other"])
+def theme_name(theme: str, lang: str = "en") -> str:
+    return THEMES_I18N.get(lang, {}).get(theme) or THEMES.get(theme, theme)
+
+
+def rca(theme: str, unit_label: str, patient_texts, staff_summaries, lang: str = "en"):
+    lang = lang if lang in _RCA_SUMMARY else "en"
+    rules = _RCA_FALLBACK_I18N.get(lang, _RCA_FALLBACK)
+    fb = rules.get(theme, rules["other"])
     out = {
-        "summary": f"Likely process causes behind recurring '{THEMES.get(theme, theme)}' reports in {unit_label}.",
+        "summary": _RCA_SUMMARY[lang].format(theme=theme_name(theme, lang), unit=unit_label),
         "whys": fb["whys"],
         "fixes": fb["fixes"],
         "source": "rules",
@@ -461,7 +704,7 @@ def rca(theme: str, unit_label: str, patient_texts, staff_summaries):
         "patient_reports": patient_texts[:8],
         "staff_summaries": staff_summaries[:8],
     }
-    llm = llm_json(_RCA_SYSTEM, json.dumps(payload, ensure_ascii=False))
+    llm = llm_json(_RCA_SYSTEM.replace("{language}", _LANG_NAMES[lang]), json.dumps(payload, ensure_ascii=False))
     if isinstance(llm, dict) and isinstance(llm.get("whys"), list) and isinstance(llm.get("fixes"), list):
         out["summary"] = str(llm.get("summary", out["summary"]))
         out["whys"] = [str(x) for x in llm["whys"]][:6]

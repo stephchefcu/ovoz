@@ -75,6 +75,8 @@ check("reporter sees the question and their reply by code",
       [m["sender"] for m in anon.post("/api/case/open", json={"code": code}).json()["messages"]] == ["reporter", "clinic"])
 check("wrong code rejected", anon.post("/api/case/open", json={"code": "AAAA-AAAA"}).status_code == 404)
 check("RCA works", clinic.post("/api/clusters/rca", json={"key": d["clusters"][0]["key"]}).json()["fixes"])
+check("root-cause help answers in Russian when asked",
+      "Почему" in " ".join(clinic.post("/api/clusters/rca", json={"key": d["clusters"][0]["key"], "lang": "ru"}).json()["whys"]))
 check("RCA with a malformed key is refused, not a server error",
       clinic.post("/api/clusters/rca", json={"key": "garbage"}).status_code == 422)
 check("demo transcription works", anon.post("/api/transcribe", files={"audio": ("v.webm", b"x", "audio/webm")}, data={"lang": "uz"}).json()["text"])
@@ -98,6 +100,8 @@ b = TestClient(app)
 r = b.post("/signup", data={"name": "Second Clinic", "slug": "second", "contact": "room 5", "password": "secondpass1",
                             "password2": "secondpass1"}, follow_redirects=False)
 check("a new clinic can sign up", r.status_code == 303 and r.headers["location"].startswith("/settings"))
+check("sign-up errors carry a translation key", 'data-i18n="su_err_taken"' in TestClient(app).post("/signup", data={
+      "name": "Copy", "slug": "demo", "password": "longpass1", "password2": "longpass1"}).text)
 check("clinic codes are unique", TestClient(app).post("/signup", data={"name": "Copy", "slug": "second",
       "password": "secondpass1", "password2": "secondpass1"}).status_code == 400)
 check("new clinic starts empty", b.get("/api/settings").json()["wards"] == [] and b.get("/api/dashboard").json()["kpi"]["reports"] == 0)

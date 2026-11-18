@@ -131,6 +131,10 @@ th { color: var(--muted); font-weight: 600; font-size: .82rem; }
 .board { background: #0b1f44; color: #fff; min-height: 100vh; }
 .board .item { background: rgba(255,255,255,.08); border-radius: 16px; padding: 18px 22px; margin: 0 0 14px; font-size: 1.25rem; }
 .board .said { color: #93c5fd; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; }
+.board .lang { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.15); }
+.board .lang button { color: #cbd5e1; }
+.board .lang button.on { background: #fff; color: #0b1f44; }
+.board .wrap.noprint a { color: #93c5fd; }
 .msg { border-radius: 12px; padding: 10px 12px; margin: 8px 0; max-width: 90%; }
 .msg.clinic { background: var(--brand-soft); }
 .msg.reporter { background: #f1f5f9; margin-left: auto; }

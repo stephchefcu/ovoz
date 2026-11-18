@@ -328,29 +328,29 @@ def signup(request: Request, name: str = Form(...), slug: str = Form(""), contac
            password: str = Form(...), password2: str = Form(...), signup_code: str = Form("")):
     form = {"name": name, "slug": slug, "contact": contact}
 
-    def fail(msg):
-        return templates.TemplateResponse(request, "signup.html", {"error": msg, "form": form,
-                                                                   "need_code": bool(config.SIGNUP_CODE)},
+    def fail(key, msg, arg=""):  # key: the translation in static/i18n-clinic.js; msg: English fallback
+        return templates.TemplateResponse(request, "signup.html", {"error": msg, "error_key": key, "error_arg": arg,
+                                                                   "form": form, "need_code": bool(config.SIGNUP_CODE)},
                                           status_code=400)
 
     if rate_limited(request, "signup", limit=5, window=3600):
-        return fail("Too many sign-ups from this connection. Try again later.")
+        return fail("su_err_rate", "Too many sign-ups from this connection. Try again later.")
     if config.SIGNUP_CODE and not hmac.compare_digest(signup_code.strip(), config.SIGNUP_CODE):
-        return fail("Wrong sign-up code.")
+        return fail("su_err_code", "Wrong sign-up code.")
     name = name.strip()
     slug = (slug.strip().lower() or clinics.slugify(name))
     if len(name) < 3:
-        return fail("Please enter the clinic's name.")
+        return fail("su_err_name", "Please enter the clinic's name.")
     if not clinics.valid_slug(slug):
-        return fail("The clinic code may use only latin letters, digits and dashes (3 to 30 characters).")
+        return fail("su_err_slug", "The clinic code may use only latin letters, digits and dashes (3 to 30 characters).")
     if len(password) < 8:
-        return fail("The password must be at least 8 characters.")
+        return fail("su_err_pw", "The password must be at least 8 characters.")
     if password != password2:
-        return fail("The two passwords are different.")
+        return fail("su_err_pw2", "The two passwords are different.")
     with db() as conn:
         if clinics.slug_taken(conn, slug):
             form["slug"] = slug
-            return fail(f"The clinic code “{slug}” is taken. Please choose another one.")
+            return fail("su_err_taken", f"The clinic code “{slug}” is taken. Please choose another one.", slug)
         cid = clinics.create(conn, name, slug, password, contact)
     return _login_response(cid, "/settings?new=1")
 
@@ -472,6 +472,7 @@ def api_dashboard(request: Request):
 
 class RcaIn(BaseModel):
     key: str = Field(pattern=r"^.+\|[a-z_]+$", max_length=300)  # "<place>|<theme>", as the dashboard sends
+    lang: str = Field(default="en", pattern="^(uz|ru|en)$")      # language of the suggestions
 
 
 @app.post("/api/clusters/rca")
@@ -479,7 +480,7 @@ def api_rca(body: RcaIn, request: Request):
     cid = require_clinic(request)
     with db() as conn:
         label, unit, theme, patients, staff = analytics.cluster_inputs(conn, cid, body.key)
-    result = ai.rca(theme, label, patients, staff)
+    result = ai.rca(theme, label, patients, staff, body.lang)
     result.update({"label": label, "unit": unit, "theme": theme, "theme_name": ai.THEMES.get(theme, theme)})
     return result
 
