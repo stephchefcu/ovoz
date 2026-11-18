@@ -125,6 +125,10 @@ _MASK_PATTERNS = [
     (re.compile(r"\b\d{9,}\b"), "[ID]"),
     (re.compile(r"\b\d{5,8}\b"), "[ID]"),
     (re.compile(r"\b([01]?\d|2[0-3])[:.][0-5]\d\b"), "[TIME]"),
+    # clock times written with words: 7am, 7 p.m. / "soat 7" (at 7 o'clock; "2 soat" = 2 hours stays) / "в 7 утра"
+    (re.compile(r"\b(?:1[0-2]|0?\d)\s?(?:[ap]\.?m\.?)(?=\W|$)", re.I), "[TIME]"),
+    (re.compile(r"\b(soat)\s+(?:[01]?\d|2[0-3])\b", re.I), r"\1 [TIME]"),
+    (re.compile(r"(?<!\w)(в|к|около)\s+(?:[01]?\d|2[0-3])\s+(?:утра|вечера|ночи|дня|час(?:а|ов)?)(?!\w)", re.I), r"\1 [TIME]"),
     (re.compile(r"(?i)\b(room|ward|палата|палате|палату|xona|xonada|xonaga|койка|bed)\s*(№|#|no\.?)?\s*\d+\b"),
      "[ROOM]"),
 ]
@@ -264,13 +268,22 @@ def rule_triage(masked: str, source: str, harm: str = "none", near_miss_flag: bo
         sev = max(sev, 4)
     sev = max(1, min(5, sev))
     desc = CATEGORIES[category][2]
-    summary = desc + (" It was caught before reaching the patient (near-miss)." if near else "")
+    summary = desc + (NEAR_MISS_SUFFIX if near else "")
     return {"category": category, "severity": sev, "urgent": urgent, "near_miss": near, "summary": summary}
 
 
 # --------------------------------------------------------------------------------------
 # LLM (any OpenAI-compatible chat-completions API)
 # --------------------------------------------------------------------------------------
+NEAR_MISS_SUFFIX = " It was caught before reaching the patient (near-miss)."
+
+
+def is_rule_summary(summary: str) -> bool:
+    """True if the summary is only the category's standard sentence (no AI model wrote it), so it says nothing
+    about what actually happened."""
+    return any(summary in (d, d + NEAR_MISS_SUFFIX) for _, _, d in CATEGORIES.values())
+
+
 def llm_enabled() -> bool:
     return bool(config.LLM_BASE_URL and config.LLM_API_KEY and config.LLM_MODEL)
 

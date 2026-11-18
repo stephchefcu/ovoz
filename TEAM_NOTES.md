@@ -76,7 +76,8 @@ Every page is in Uzbek, Russian and English.
 
 - We store **no** name, phone, Telegram ID, device, IP address or audio. Voice is deleted after transcription,
   also at VoiceLab.
-- Time is stored as day + morning / afternoon / night only. Staff reports reach managers as neutral summaries, week only.
+- Time is stored as day + morning / afternoon / night only. Staff reports reach managers with the week only: as the AI's neutral summary,
+  or, without an AI key, as the text the reporter checked (names and numbers hidden).
 - Places with fewer than 3 reports are combined, so nobody can be singled out. Wards are never ranked by report count.
 - Each clinic sees only its own data.
 - "We don't rely on people being perfect. We design so honest behaviour is easy and dishonest behaviour is visible."
