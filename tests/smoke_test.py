@@ -99,12 +99,16 @@ clinic.post("/login", data={"clinic": "demo", "password": "demo"})
 b = TestClient(app)
 r = b.post("/signup", data={"name": "Second Clinic", "slug": "second", "contact": "room 5", "password": "secondpass1",
                             "password2": "secondpass1"}, follow_redirects=False)
-check("a new clinic can sign up", r.status_code == 303 and r.headers["location"].startswith("/settings"))
+check("a new clinic can sign up and lands on its QR codes", r.status_code == 303 and r.headers["location"].startswith("/qr"))
 check("sign-up errors carry a translation key", 'data-i18n="su_err_taken"' in TestClient(app).post("/signup", data={
       "name": "Copy", "slug": "demo", "password": "longpass1", "password2": "longpass1"}).text)
 check("clinic codes are unique", TestClient(app).post("/signup", data={"name": "Copy", "slug": "second",
       "password": "secondpass1", "password2": "secondpass1"}).status_code == 400)
-check("new clinic starts empty", b.get("/api/settings").json()["wards"] == [] and b.get("/api/dashboard").json()["kpi"]["reports"] == 0)
+new_wards = b.get("/api/settings").json()["wards"]
+check("new clinic starts with one ready department (Umumiy) and no reports",
+      [w["name_uz"] for w in new_wards] == ["Umumiy"] and b.get("/api/dashboard").json()["kpi"]["reports"] == 0)
+qr_new = b.get("/qr?new=1").text
+check("its QR sheet works right away", "Umumiy" in qr_new and 'class="segno"' in qr_new and 'data-i18n="qr_ready"' in qr_new)
 wcode = b.post("/api/wards", json={"name": "Cardiology", "name_uz": "Kardiologiya bo'limi", "name_ru": "Кардиология",
                                    "unit": "Cardiology"}).json()["code"]
 check("clinic adds its own department", any(w["code"] == wcode for w in b.get("/api/settings").json()["wards"]))

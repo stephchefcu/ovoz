@@ -7,9 +7,12 @@
 {% block content %}
 <div class="wrap wide">
   <div class="noprint">
+    {% if new %}
+    <div class="note ok"><b data-i18n="qr_ready">Your clinic is ready.</b>
+      <span data-i18n="qr_ready_sub">Print this QR code and put it up. Add departments later in Settings if you need them.</span></div>
+    {% endif %}
     <h1 data-i18n="qr_title">Printable QR codes</h1>
-    <p class="muted">{{ clinic.name }}. <span data-i18n="qr_sub">One code per department (not per room), so a report
-      cannot point to a single patient. Print this page and post each code where patients and relatives can see it.</span>
+    <p class="muted">{{ clinic.name }}. <span data-i18n="qr_sub">One code per department. Print it and put it where patients can see it.</span>
       {% if bot %}<span data-i18n="qr_tg">The small code opens the Telegram bot already set to that department.</span>{% endif %}
       <span data-i18n="qr_staff">The last poster is for the staff room.</span></p>
     <button onclick="window.print()" data-i18n="qr_print">Print</button>
