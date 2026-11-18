@@ -1,10 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Sign up your clinic · Ovoz{% endblock %}
-{% block nav %}
-  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
-{% endblock %}
 {% block content %}
-<div class="wrap" style="max-width:520px">
+<div class="wrap narrow">
   <h1 data-i18n="su_title">Sign up your clinic</h1>
   <div class="note info"><span data-i18n="su_trial">Free for 60 days, then free for up to 3 departments.</span> <a href="/pricing" data-i18n="su_pricing">See pricing</a></div>
   <form class="card" method="post" action="/signup">
@@ -35,7 +32,7 @@
     {% endif %}
 
     {% if error %}<div class="note bad" style="margin-top:12px" data-i18n="{{ error_key }}" data-i18n-arg="{{ error_arg }}">{{ error }}</div>{% endif %}
-    <div class="row" style="margin-top:14px"><button type="submit" data-i18n="su_btn">Create clinic</button></div>
+    <button type="submit" class="block" style="margin-top:16px" data-i18n="su_btn">Create clinic</button>
     <p class="small muted" style="margin-top:12px"><span data-i18n="su_have">Already signed up?</span>
       <a href="/login" data-i18n="li_btn">Log in</a></p>
   </form>

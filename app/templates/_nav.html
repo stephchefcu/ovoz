@@ -1,0 +1,13 @@
+{# Shared top-bar links. The language switch is added by base.html on every page. #}
+{% macro clinic_nav(active) -%}
+  <a href="/dashboard" class="{{ 'on' if active == 'dashboard' }}" data-i18n="nav_dashboard">Dashboard</a>
+  <a href="/qr" class="{{ 'on' if active == 'qr' }}" data-i18n="nav_qr">QR codes</a>
+  <a href="/settings" class="{{ 'on' if active == 'settings' }}" data-i18n="nav_settings">Settings</a>
+  <a href="/logout" data-i18n="nav_logout">Log out</a>
+{%- endmacro %}
+
+{% macro public_nav(is_clinic, active="") -%}
+  <a href="/pricing" class="{{ 'on' if active == 'pricing' }}" data-i18n="h_pricing">Narxlar</a>
+  {% if is_clinic %}<a href="/dashboard" data-i18n="h_dashboard">Boshqaruv paneli</a>
+  {% else %}<a href="/login" data-i18n="h_login">Kirish</a>{% endif %}
+{%- endmacro %}

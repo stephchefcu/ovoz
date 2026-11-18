@@ -15,15 +15,16 @@
 {% block topbar %}
 <div class="topbar">
   <a href="/" class="brand" aria-label="Ovoz home"><img src="/static/brand/wordmark.svg?v={{ V }}" alt="Ovoz" width="97" height="25"></a>
-  <div class="nav">
-    {% block nav %}{% endblock %}
-  </div>
+  <nav class="nav-links">{% block nav %}{% endblock %}</nav>
+  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
 </div>
 {% endblock %}
 {% block content %}{% endblock %}
-<div class="wrap noprint small muted {% block footclass %}{% endblock %}" style="margin-top:24px;margin-bottom:24px">
+<footer class="foot noprint">
   <a href="/privacy{% if clinic is defined and clinic %}?c={{ clinic.slug }}{% endif %}" data-i18n="terms_link">Terms & privacy</a>
-</div>
+  <span aria-hidden="true">·</span>
+  <a href="/pricing" data-i18n="h_pricing">Narxlar</a>
+</footer>
 {% block scripts %}{% endblock %}
 </body>
 </html>

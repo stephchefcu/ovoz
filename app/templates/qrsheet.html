@@ -1,9 +1,7 @@
 {% extends "base.html" %}
 {% block title %}QR codes · {{ clinic.name }} · Ovoz{% endblock %}
-{% block nav %}
-  <div class="lang noprint"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
-  <a href="/dashboard" data-i18n="nav_dashboard">Dashboard</a><a href="/settings" data-i18n="nav_settings">Settings</a>
-{% endblock %}
+{% from "_nav.html" import clinic_nav %}
+{% block nav %}{{ clinic_nav("qr") }}{% endblock %}
 {% block content %}
 <div class="wrap wide">
   <div class="noprint">

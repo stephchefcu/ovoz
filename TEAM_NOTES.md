@@ -71,6 +71,9 @@ Every page is in Uzbek, Russian and English.
 - One short line of help at most; put details on the terms page (`/privacy`), not on the form.
 - Every new text goes into all three languages (`app/static/i18n.js` or `app/static/i18n-clinic.js`).
 - One blue accent colour, no emojis (a test checks this), big buttons that work on a phone.
+- One top bar and footer for every page (`app/templates/base.html`). Page links come from `app/templates/_nav.html`
+  (clinic pages: Dashboard, QR codes, Settings, Log out, with the current page highlighted); the language switch is
+  always last. Forms like login and sign-up use the narrow layout (`wrap narrow`) with a full-width button.
 
 ## What to say about privacy
 
