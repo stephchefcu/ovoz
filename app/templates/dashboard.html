@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ clinic.name }} · Ovoz{% endblock %}
-{% block nav %}<a href="/settings">Settings</a><a href="/qr">QR codes</a><a href="/c/{{ clinic.slug }}">Public page</a><a href="/logout">Log out</a>{% endblock %}
+{% block nav %}
+  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+  <a href="/settings" data-i18n="nav_settings">Settings</a><a href="/qr" data-i18n="nav_qr">QR codes</a><a href="/c/{{ clinic.slug }}" data-i18n="nav_public">Public page</a><a href="/logout" data-i18n="nav_logout">Log out</a>
+{% endblock %}
 {% block content %}
 <div class="wrap wide">
   <div class="row" style="justify-content:space-between">
-    <div><h1 style="margin-bottom:2px">{{ clinic.name }}</h1><div class="small muted">Dashboard · clinic code <code>{{ clinic.slug }}</code></div></div>
+    <div><h1 style="margin-bottom:2px">{{ clinic.name }}</h1><div class="small muted"><span data-i18n="nav_dashboard">Dashboard</span> · <span data-i18n="clinic_code_l">clinic code</span> <code>{{ clinic.slug }}</code></div></div>
     <div class="small muted" id="mode"></div>
   </div>
   <div class="note info small" id="privnote"></div>
@@ -12,35 +15,35 @@
   <div class="grid kpis" id="kpis"></div>
 
   <div id="urgentbox" class="card hidden" style="margin-top:14px;border-color:#f2b8b8;background:#fff8f8">
-    <h2>Urgent patient reports — review now</h2>
+    <h2 data-i18n="db_urgent">Urgent patient reports — review now</h2>
     <div id="urgent"></div>
   </div>
 
   <div id="radarbox" class="card hidden" style="margin-top:14px">
-    <h2>Early-warning radar</h2>
-    <p class="small muted">These places had more reports than usual this week, so they may need a look before something serious happens.</p>
+    <h2 data-i18n="db_radar">Early-warning radar</h2>
+    <p class="small muted" data-i18n="db_radar_help">These places had more reports than usual this week, so they may need a look before something serious happens.</p>
     <div id="radar"></div>
   </div>
 
-  <h2 style="margin-top:20px">Recurring problems <span class="small muted">(patients and staff combined)</span></h2>
-  <p class="small muted">A problem seen by both patients and staff is marked <span class="badge linked">linked</span>. Staff reports appear only as neutral summaries.</p>
+  <h2 style="margin-top:20px"><span data-i18n="db_clusters">Recurring problems</span> <span class="small muted" data-i18n="db_clusters_sub">(patients and staff combined)</span></h2>
+  <p class="small muted" data-i18n="db_clusters_help">A problem seen by both patients and staff is marked "linked". Staff reports appear only as neutral summaries.</p>
   <div id="clusters"></div>
 
   <div class="grid two" style="margin-top:14px">
     <div>
       <div class="card">
-        <h2>Action tracker</h2>
+        <h2 data-i18n="db_actions">Action tracker</h2>
         <div id="actions"></div>
       </div>
       <div class="card">
-        <h2>Latest reports</h2>
-        <p class="small muted">Ask a follow-up question: the reporter sees it by entering their case code (no identity needed).</p>
+        <h2 data-i18n="db_feed">Latest reports</h2>
+        <p class="small muted" data-i18n="db_feed_help">Ask a follow-up question: the reporter sees it by entering their case code (no identity needed).</p>
         <div id="feed"></div>
       </div>
     </div>
     <div>
       <div class="card">
-        <h2>Where reports come from <span class="small muted">(A–Z, not a ranking)</span></h2>
+        <h2><span data-i18n="db_heat">Where reports come from</span> <span class="small muted" data-i18n="db_heat_sub">(A–Z, not a ranking)</span></h2>
         <div id="heat"></div>
       </div>
     </div>
@@ -50,10 +53,16 @@
 <div id="modal" class="modal-bg hidden"><div class="modal" id="modalbody"></div></div>
 {% endblock %}
 {% block scripts %}
+<script src="/static/i18n.js?v={{ V }}"></script>
+<script src="/static/i18n-clinic.js?v={{ V }}"></script>
 <script>
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const sevBadge = n => `<span class="badge sev${n}">severity ${n}/5</span>`;
+  const sevBadge = n => `<span class="badge sev${n}">${esc(tf("db_sev", { n }))}</span>`;
+  // Translated name if there is one, else the English name from the server
+  const tr = (prefix, key, fallback) => (I18N.en[prefix + key] ? t(prefix + key) : fallback);
+  const theme = c => tr("th_", c.theme, c.theme_name);
+  const cat = (key, fallback) => tr("cat_", key, fallback);
   let DATA = null;
 
   async function load() {
@@ -64,45 +73,43 @@
   }
 
   function render(d) {
-    $("mode").textContent = "AI mode: " + (d.ai_mode === "llm" ? "language model" : "rules (offline fallback)");
-    $("privnote").innerHTML = `Privacy rules on: wards or issues with fewer than <b>${d.privacy.k_min}</b> reports are combined or hidden
-      (${d.kpi.hidden_small_groups} small group(s) hidden). Staff reports show as neutral summaries with week-level dates only.
-      Window: last ${d.privacy.window_days} days.`;
+    $("mode").textContent = t("db_ai") + " " + (d.ai_mode === "llm" ? t("db_ai_llm") : t("db_ai_rules"));
+    $("privnote").textContent = tf("db_privacy", { k: d.privacy.k_min, hidden: d.kpi.hidden_small_groups, days: d.privacy.window_days });
 
     const k = d.kpi;
     // Headline = problems fixed. Report counts are context: more reports usually means a safer culture.
     $("kpis").innerHTML = [
-      ["Problems fixed", k.fixed, "head"], ["Open actions", k.open_actions], ["Linked problems", k.linked_clusters],
-      ["Urgent", k.urgent], ["Reports", k.reports], ["From patients / staff", k.patient + " / " + k.staff],
-    ].map(([a, b, c]) => `<div class="kpi ${c || ""}"><b>${b}</b><span>${a}</span></div>`).join("") +
-      `<div class="small muted" style="grid-column:1/-1">More reports usually means a safer culture (people trust the system), not more errors. Wards are never ranked by how much they report.</div>`;
+      [t("db_k_fixed"), k.fixed, "head"], [t("db_k_open"), k.open_actions], [t("db_k_linked"), k.linked_clusters],
+      [t("db_k_urgent"), k.urgent], [t("db_k_reports"), k.reports], [t("db_k_ps"), k.patient + " / " + k.staff],
+    ].map(([a, b, c]) => `<div class="kpi ${c || ""}"><b>${b}</b><span>${esc(a)}</span></div>`).join("") +
+      `<div class="small muted" style="grid-column:1/-1">${esc(t("db_k_note"))}</div>`;
 
     $("urgentbox").classList.toggle("hidden", !d.urgent.length);
-    $("urgent").innerHTML = d.urgent.map(u => `<div class="quote"><b>${esc(u.label)}</b> · ${esc(u.category)} · ${esc(u.day)}<br>${esc(u.text)}
-      <div><button class="small" onclick="askModal(${u.id})">Ask a question</button></div></div>`).join("");
+    $("urgent").innerHTML = d.urgent.map(u => `<div class="quote"><b>${esc(u.label)}</b> · ${esc(cat(u.category_key, u.category))} · ${esc(u.day)}<br>${esc(u.text)}
+      <div><button class="small" onclick="askModal(${u.id})">${esc(t("db_ask"))}</button></div></div>`).join("");
 
     $("radarbox").classList.toggle("hidden", !d.radar.length);
-    $("radar").innerHTML = d.radar.map(r => `<div class="note warn"><b>${esc(r.label)}</b>: ${r.this_week} reports this week vs about ${r.usual} usual.</div>`).join("");
+    $("radar").innerHTML = d.radar.map(r => `<div class="note warn"><b>${esc(r.label)}</b>: ${esc(tf("db_radar_row", { n: r.this_week, usual: r.usual }))}</div>`).join("");
 
     $("clusters").innerHTML = d.clusters.length ? d.clusters.map((c, i) => `
       <div class="card cluster ${c.linked ? "linked" : ""}">
         <div class="row" style="justify-content:space-between">
           <div>
-            <h3>${esc(c.label)} — ${esc(c.theme_name)}</h3>
-            <span class="badge p">${c.patient_count} patient</span>
-            <span class="badge s">${c.staff_count} staff</span>
-            ${c.linked ? '<span class="badge linked">linked: seen by both</span>' : ""}
+            <h3>${esc(c.label)} — ${esc(theme(c))}</h3>
+            <span class="badge p">${esc(tf("db_n_patient", { n: c.patient_count }))}</span>
+            <span class="badge s">${esc(tf("db_n_staff", { n: c.staff_count }))}</span>
+            ${c.linked ? `<span class="badge linked">${esc(t("db_linked"))}</span>` : ""}
             ${sevBadge(Math.round(c.avg_severity))}
-            ${c.near_misses ? `<span class="badge near">${c.near_misses} near-miss</span>` : ""}
+            ${c.near_misses ? `<span class="badge near">${esc(tf("db_n_near", { n: c.near_misses }))}</span>` : ""}
           </div>
-          <button class="small" onclick="rcaModal(${i})">Root-cause help</button>
+          <button class="small" onclick="rcaModal(${i})">${esc(t("db_rca"))}</button>
         </div>
-        <div class="small muted" style="margin-top:6px">${Object.entries(c.categories).map(([k, v]) => esc(k) + " ×" + v).join(" · ")}</div>
-        ${c.patient_examples.map(t => `<div class="quote">“${esc(t)}”</div>`).join("")}
-        ${c.staff_summaries.map(t => `<div class="quote staff"><span class="small muted">Staff (summary):</span> ${esc(t)}</div>`).join("")}
-      </div>`).join("") : '<div class="card muted">No recurring problems to show yet.</div>';
+        <div class="small muted" style="margin-top:6px">${Object.entries(c.category_keys || {}).map(([k, v]) => esc(cat(k, k)) + " ×" + v).join(" · ")}</div>
+        ${c.patient_examples.map(x => `<div class="quote">“${esc(x)}”</div>`).join("")}
+        ${c.staff_summaries.map(x => `<div class="quote staff"><span class="small muted">${esc(t("db_staff_sum"))}</span> ${esc(x)}</div>`).join("")}
+      </div>`).join("") : `<div class="card muted">${esc(t("db_no_clusters"))}</div>`;
 
-    $("heat").innerHTML = `<table><thead><tr><th>Place</th><th>Reports</th><th>P / S</th><th>Last 6 weeks</th></tr></thead><tbody>` +
+    $("heat").innerHTML = `<table><thead><tr><th>${esc(t("db_h_place"))}</th><th>${esc(t("db_k_reports"))}</th><th>${esc(t("db_h_ps"))}</th><th>${esc(t("db_h_weeks"))}</th></tr></thead><tbody>` +
       d.heat.map(h => {
         const mx = Math.max(1, ...h.trend);
         return `<tr><td>${esc(h.label)}</td><td><b>${h.total}</b></td><td>${h.patient} / ${h.staff}</td>
@@ -111,18 +118,18 @@
 
     $("feed").innerHTML = d.feed.map(f => `
       <div class="quote ${f.source === "staff" ? "staff" : ""}">
-        <span class="badge ${f.source === "staff" ? "s" : "p"}">${f.source}</span>
-        ${f.urgent ? '<span class="badge urgent">urgent</span>' : ""} ${sevBadge(f.severity)}
-        <span class="small muted">${esc(f.label)} · ${esc(f.category)} · ${esc(f.day)}${f.bucket ? " · " + esc(f.bucket) : ""}</span><br>
+        <span class="badge ${f.source === "staff" ? "s" : "p"}">${esc(t(f.source === "staff" ? "db_src_staff" : "db_src_patient"))}</span>
+        ${f.urgent ? `<span class="badge urgent">${esc(t("db_urgent_b"))}</span>` : ""} ${sevBadge(f.severity)}
+        <span class="small muted">${esc(f.label)} · ${esc(cat(f.category_key, f.category))} · ${esc(f.day)}${f.bucket ? " · " + esc(tr("tb_", f.bucket, f.bucket)) : ""}</span><br>
         ${esc(f.text)}
-        <div><button class="ghost small" onclick="askModal(${f.id})">Ask a question</button></div>
+        <div><button class="ghost small" onclick="askModal(${f.id})">${esc(t("db_ask"))}</button></div>
       </div>`).join("");
 
-    $("actions").innerHTML = d.actions.length ? `<table><thead><tr><th>Action</th><th>Owner</th><th>Due</th><th></th></tr></thead><tbody>` +
+    $("actions").innerHTML = d.actions.length ? `<table><thead><tr><th>${esc(t("db_a_action"))}</th><th>${esc(t("db_a_owner"))}</th><th>${esc(t("db_a_due"))}</th><th></th></tr></thead><tbody>` +
       d.actions.map(a => `<tr><td>${esc(a.title)}<div class="small muted">${esc(a.scope_unit)}${a.cause ? " · " + esc(a.cause) : ""}</div></td>
         <td>${esc(a.owner)}</td><td>${esc(a.due)}</td>
-        <td>${a.status === "done" ? '<span class="badge sev1">done</span>' : `<button class="small" onclick="doneAction(${a.id})">Mark done</button>`}</td></tr>`).join("") +
-      "</tbody></table>" : '<p class="muted">No actions yet. Open “Root-cause help” on a problem to create one.</p>';
+        <td>${a.status === "done" ? `<span class="badge sev1">${esc(t("db_done"))}</span>` : `<button class="small" onclick="doneAction(${a.id})">${esc(t("db_mark_done"))}</button>`}</td></tr>`).join("") +
+      "</tbody></table>" : `<p class="muted">${esc(t("db_no_actions"))}</p>`;
   }
 
   // ---- modals ---------------------------------------------------------------------------
@@ -131,10 +138,10 @@
   $("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 
   function askModal(id) {
-    openModal(`<h2>Ask the reporter a question</h2>
-      <p class="small muted">The reporter stays anonymous. They see this when they enter their case code.</p>
-      <textarea id="askbody" style="min-height:90px" placeholder="For example: which shift did this happen on? Is it still a problem?"></textarea>
-      <div class="row" style="margin-top:10px"><button onclick="sendAsk(${id})">Send</button><button class="ghost" onclick="closeModal()">Cancel</button></div>`);
+    openModal(`<h2>${esc(t("db_ask_title"))}</h2>
+      <p class="small muted">${esc(t("db_ask_help"))}</p>
+      <textarea id="askbody" style="min-height:90px" placeholder="${esc(t("db_ask_ph"))}"></textarea>
+      <div class="row" style="margin-top:10px"><button onclick="sendAsk(${id})">${esc(t("db_send"))}</button><button class="ghost" onclick="closeModal()">${esc(t("db_cancel"))}</button></div>`);
   }
   async function sendAsk(id) {
     const body = $("askbody").value.trim(); if (!body) return;
@@ -144,28 +151,28 @@
 
   async function rcaModal(i) {
     const c = DATA.clusters[i];
-    openModal(`<h2>Root-cause help</h2><p class="muted">${esc(c.label)} — ${esc(c.theme_name)}</p><p>Thinking…</p>`);
-    const r = await fetch("/api/clusters/rca", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: c.key }) });
+    openModal(`<h2>${esc(t("db_rca"))}</h2><p class="muted">${esc(c.label)} — ${esc(theme(c))}</p><p>${esc(t("db_thinking"))}</p>`);
+    const r = await fetch("/api/clusters/rca", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: c.key, lang: LANG }) });
     const j = await r.json();
     window._rca = { c, j };
     openModal(`
-      <h2>Root-cause help</h2>
-      <p class="muted">${esc(c.label)} — ${esc(c.theme_name)}</p>
-      <div class="note info small">Suggested by AI (${j.source === "llm" ? "language model" : "rules"}). It looks at processes, not people. A person must review and decide.</div>
+      <h2>${esc(t("db_rca"))}</h2>
+      <p class="muted">${esc(c.label)} — ${esc(theme(c))}</p>
+      <div class="note info small">${esc(tf("db_rca_note", { src: j.source === "llm" ? t("db_ai_llm") : t("db_ai_rules_s") }))}</div>
       <p>${esc(j.summary)}</p>
-      <h3>Why is this happening?</h3>
+      <h3>${esc(t("db_why"))}</h3>
       <ol class="steps">${j.whys.map(w => `<li>${esc(w)}</li>`).join("")}</ol>
-      <h3>Proposed fixes</h3>
+      <h3>${esc(t("db_fixes"))}</h3>
       <div>${j.fixes.map((f, n) => `<label style="font-weight:400;margin:6px 0"><input type="radio" name="fix" value="${n}" ${n === 0 ? "checked" : ""}> ${esc(f)}</label>`).join("")}</div>
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
-      <h3>Create an action</h3>
-      <label>Owner (role or name)</label><input type="text" id="aowner" placeholder="e.g. Head nurse, Surgery">
-      <label>Due date</label><input type="date" id="adue">
-      <label>Message for the ward screen (“you said, we did”) — keep it neutral</label>
+      <h3>${esc(t("db_create_title"))}</h3>
+      <label>${esc(t("db_owner_l"))}</label><input type="text" id="aowner" placeholder="${esc(t("db_owner_ph"))}">
+      <label>${esc(t("db_due_l"))}</label><input type="date" id="adue">
+      <label>${esc(t("db_public_l"))}</label>
       <textarea id="apublic" style="min-height:60px"></textarea>
-      <div class="row" style="margin-top:12px"><button onclick="createAction()">Create action</button><button class="ghost" onclick="closeModal()">Close</button></div>`);
+      <div class="row" style="margin-top:12px"><button onclick="createAction()">${esc(t("db_create"))}</button><button class="ghost" onclick="closeModal()">${esc(t("db_close"))}</button></div>`);
     const sel = () => document.querySelector("input[name=fix]:checked");
-    const fill = () => { $("apublic").value = "Based on your feedback: " + j.fixes[+sel().value]; };
+    const fill = () => { $("apublic").value = t("db_based") + " " + j.fixes[+sel().value]; };
     document.querySelectorAll("input[name=fix]").forEach(x => x.addEventListener("change", fill));
     fill();
   }
@@ -181,5 +188,6 @@
 
   load();
   setInterval(load, 20000);
+  document.addEventListener("langchange", () => { if (DATA) render(DATA); });
 </script>
 {% endblock %}

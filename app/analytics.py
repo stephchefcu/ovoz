@@ -121,6 +121,7 @@ def build_dashboard(conn, clinic_id):
             "patient_examples": [x["text_masked"][:220] for x in patients[:3]],
             "staff_summaries": sorted({x["summary"] for x in staff})[:3],
             "categories": dict(Counter(ai.CATEGORIES[x["category"]][1] for x in rs).most_common(4)),
+            "category_keys": dict(Counter(x["category"] for x in rs).most_common(4)),  # for translated names
             "last_day": max(x["created_day"] for x in patients) if patients else None,
         })
     clusters.sort(key=lambda c: (not c["linked"], -c["total"], -c["max_severity"]))
@@ -160,7 +161,8 @@ def build_dashboard(conn, clinic_id):
         label, _ = lab.label(r["ward_code"])
         return {
             "id": r["id"], "source": r["source"], "label": label,
-            "category": ai.CATEGORIES[r["category"]][1], "theme": ai.THEMES.get(r["theme"], r["theme"]),
+            "category": ai.CATEGORIES[r["category"]][1], "category_key": r["category"],
+            "theme": ai.THEMES.get(r["theme"], r["theme"]),
             "severity": r["severity"], "urgent": bool(r["urgent"]), "near_miss": bool(r["near_miss"]),
             "text": _public_text(r), "day": _public_day(r), "bucket": r["time_bucket"] if r["source"] == "patient" else None,
         }

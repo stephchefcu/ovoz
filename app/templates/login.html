@@ -1,19 +1,27 @@
 {% extends "base.html" %}
 {% block title %}Clinic login · Ovoz{% endblock %}
+{% block nav %}
+  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+{% endblock %}
 {% block content %}
 <div class="wrap" style="max-width:420px">
-  <h1>Clinic login</h1>
-  <p class="muted">Only authorised clinic staff (director, quality officer) can open the dashboard.</p>
+  <h1 data-i18n="li_title">Clinic login</h1>
+  <p class="muted" data-i18n="li_sub">Only authorised clinic staff (director, quality officer) can open the dashboard.</p>
   <form class="card" method="post" action="/login">
-    <label for="clinic">Clinic code</label>
+    <label for="clinic" data-i18n="clinic_code">Clinic code</label>
     <input id="clinic" name="clinic" value="{{ slug or '' }}" autocapitalize="off" autocomplete="username" required
            {% if not slug %}autofocus{% endif %}>
-    <label for="password">Password</label>
+    <label for="password" data-i18n="password">Password</label>
     <input type="password" id="password" name="password" autocomplete="current-password" required
            {% if slug %}autofocus{% endif %}>
-    {% if error %}<div class="note bad" style="margin-top:10px">Wrong clinic code or password.</div>{% endif %}
-    <div class="row" style="margin-top:12px"><button type="submit">Log in</button></div>
-    <p class="small muted" style="margin-top:12px">New clinic? <a href="/signup">Sign up</a></p>
+    {% if error %}<div class="note bad" style="margin-top:10px" data-i18n="li_error">Wrong clinic code or password.</div>{% endif %}
+    <div class="row" style="margin-top:12px"><button type="submit" data-i18n="li_btn">Log in</button></div>
+    <p class="small muted" style="margin-top:12px"><span data-i18n="li_new">New clinic?</span>
+      <a href="/signup" data-i18n="li_signup">Sign up</a></p>
   </form>
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/i18n.js?v={{ V }}"></script>
+<script src="/static/i18n-clinic.js?v={{ V }}"></script>
 {% endblock %}

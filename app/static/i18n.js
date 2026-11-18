@@ -379,10 +379,13 @@ try {
 if (!I18N[LANG]) LANG = "uz";
 
 function t(key) { return (I18N[LANG] && I18N[LANG][key]) || I18N.en[key] || key; }
+// Text with values filled in: tf("k", { n: 3 }) turns "{n} reports" into "3 reports"
+function tf(key, vars) { return t(key).replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? vars[k] : m)); }
 
 function applyLang() {
   document.documentElement.lang = LANG;
-  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  // data-i18n-arg fills {x} in the text, e.g. a clinic code
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = tf(el.dataset.i18n, { x: el.dataset.i18nArg ?? "" }); });
   document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.l === LANG));
   // Department names: <x data-name-en="..." data-name-uz="..." data-name-ru="..."> shows the current language
