@@ -3,7 +3,7 @@ import random
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
-from . import ai, analytics, config
+from . import ai, analytics, config, plans
 from .util import hash_code, new_case_code
 
 
@@ -43,7 +43,9 @@ def save_report(conn, source: str, ward_code: str, text: str, lang: str, rating:
     ward = get_ward(conn, ward_code)
     if not ward:
         raise ValueError("unknown or removed department")
-    result = ai.analyze(text, source, harm, near_miss)
+    # The plan only changes how reports are sorted (AI or keyword rules). It never blocks or delays a report.
+    use_llm = plans.for_clinic(conn, ward["clinic_id"])["ai_sorting"]
+    result = ai.analyze(text, source, harm, near_miss, use_llm=use_llm)
     if urgent:
         result["urgent"] = True
         result["severity"] = max(result["severity"], 4)

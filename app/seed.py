@@ -10,7 +10,7 @@ import random
 import secrets
 from datetime import date, datetime, timedelta, timezone
 
-from . import ai, analytics, clinics, config
+from . import ai, analytics, clinics, config, plans
 from .db import db, init_db
 from .util import hash_code
 
@@ -103,6 +103,8 @@ def seed(reset: bool = True):
         demo = clinics.by_slug(conn, "demo")
         cid = demo["id"] if demo else clinics.create(conn, config.CLINIC_NAME or "Demo clinic", "demo",
                                                      config.CLINIC_PASSWORD, config.CLINIC_CONTACT)
+        if not demo:
+            plans.set_plan(conn, cid, "network")  # the demo clinic shows every feature
         codes = {}
         for name, unit in WARDS:
             code = secrets.token_urlsafe(6)

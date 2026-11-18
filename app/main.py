@@ -17,7 +17,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
-from . import ai, analytics, clinics, config, pricing, reports, terms, voice
+from . import ai, analytics, clinics, config, plans, pricing, reports, terms, voice
 from .db import db, init_db
 
 APP_DIR = Path(__file__).resolve().parent
@@ -25,6 +25,7 @@ app = FastAPI(title="Ovoz")
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 templates.env.globals["TERMS_VERSION"] = terms.TERMS_VERSION
+templates.env.globals["PLAN_UI"] = plans.UI
 templates.env.globals["V"] = str(int(time.time()))  # cache-buster: browsers reload CSS/JS after a restart
 
 init_db()
@@ -216,6 +217,8 @@ def board_page(request: Request, ward_code: str):
             "ORDER BY done_day DESC, id DESC LIMIT 12",
             (w["clinic_id"], w["unit"]),
         ).fetchall()
+        if not plans.for_clinic(conn, w["clinic_id"])["insights"]:
+            rows = []  # the "You said, we did" board is part of Klinika and Network
     return templates.TemplateResponse(request, "board.html", {"ward": w, "actions": [dict(r) for r in rows]})
 
 
@@ -391,7 +394,9 @@ def settings_page(request: Request, new: int = 0):
         return RedirectResponse("/login", status_code=303)
     with db() as conn:
         c = clinics.get(conn, cid)
-    return templates.TemplateResponse(request, "settings.html", {"clinic": c, "new": bool(new),
+        plan = plans.summary(conn, cid)
+    return templates.TemplateResponse(request, "settings.html", {"clinic": c, "new": bool(new), "plan": plan,
+                                                                 "contact": config.SALES_CONTACT,
                                                                  "base": str(request.base_url).rstrip("/")})
 
 
@@ -400,7 +405,7 @@ def api_settings(request: Request):
     cid = require_clinic(request)
     with db() as conn:
         return {"clinic": clinics.get(conn, cid), "wards": clinics.wards(conn, cid, include_inactive=True),
-                "bot": bot_username()}
+                "bot": bot_username(), "plan": plans.summary(conn, cid)}
 
 
 class ClinicIn(BaseModel):
@@ -443,6 +448,8 @@ class WardIn(BaseModel):
 def api_ward_add(body: WardIn, request: Request):
     cid = require_clinic(request)
     with db() as conn:
+        if not plans.can_add_department(conn, cid):
+            raise HTTPException(403, "department_limit")
         return {"code": clinics.add_ward(conn, cid, body.name, body.name_uz, body.name_ru, body.unit)}
 
 
@@ -450,6 +457,10 @@ def api_ward_add(body: WardIn, request: Request):
 def api_ward_update(code: str, body: WardIn, request: Request):
     cid = require_clinic(request)
     with db() as conn:
+        w = conn.execute("SELECT active FROM wards WHERE code=? AND clinic_id=?", (code, cid)).fetchone()
+        reactivating = bool(w) and body.active and not w["active"]
+        if reactivating and not plans.can_add_department(conn, cid):
+            raise HTTPException(403, "department_limit")
         if not clinics.update_ward(conn, cid, code, body.name, body.name_uz, body.name_ru, body.unit, body.active):
             raise HTTPException(404, "department not found")
     return {"ok": True}
@@ -465,14 +476,33 @@ def dashboard_page(request: Request):
         return RedirectResponse("/login", status_code=303)
     with db() as conn:
         c = clinics.get(conn, cid)
-    return templates.TemplateResponse(request, "dashboard.html", {"clinic": c})
+        plan = plans.summary(conn, cid)
+    return templates.TemplateResponse(request, "dashboard.html", {"clinic": c, "plan": plan,
+                                                                  "contact": config.SALES_CONTACT})
 
 
 @app.get("/api/dashboard")
 def api_dashboard(request: Request):
     cid = require_clinic(request)
     with db() as conn:
-        return analytics.build_dashboard(conn, cid)
+        d = analytics.build_dashboard(conn, cid)
+        plan = plans.summary(conn, cid)
+    d["plan"] = plan
+    if not plan["ai_sorting"]:
+        d["ai_mode"] = "rules"
+    if not plan["insights"]:
+        # Start plan: urgent reports, the latest reports and follow-up questions stay; analysis is not sent.
+        d["clusters"], d["radar"], d["actions"] = [], [], []
+        for k in ("linked_clusters", "open_actions", "fixed"):
+            d["kpi"][k] = None
+    return d
+
+
+def require_insights(conn, cid: int) -> dict:
+    plan = plans.for_clinic(conn, cid)
+    if not plan["insights"]:
+        raise HTTPException(403, "plan_feature")
+    return plan
 
 
 class RcaIn(BaseModel):
@@ -484,8 +514,9 @@ class RcaIn(BaseModel):
 def api_rca(body: RcaIn, request: Request):
     cid = require_clinic(request)
     with db() as conn:
+        plan = require_insights(conn, cid)
         label, unit, theme, patients, staff = analytics.cluster_inputs(conn, cid, body.key)
-    result = ai.rca(theme, label, patients, staff, body.lang)
+    result = ai.rca(theme, label, patients, staff, body.lang, use_llm=plan["ai_root_cause"])
     result.update({"label": label, "unit": unit, "theme": theme, "theme_name": ai.THEMES.get(theme, theme)})
     return result
 
@@ -504,6 +535,7 @@ class ActionIn(BaseModel):
 def api_action_create(body: ActionIn, request: Request):
     cid = require_clinic(request)
     with db() as conn:
+        require_insights(conn, cid)
         conn.execute(
             "INSERT INTO actions (theme, scope_unit, title, cause, owner, due, public_text, status, created_day, "
             "clinic_id) VALUES (?,?,?,?,?,?,?,?,?,?)",
@@ -517,6 +549,7 @@ def api_action_create(body: ActionIn, request: Request):
 def api_action_done(action_id: int, request: Request):
     cid = require_clinic(request)
     with db() as conn:
+        require_insights(conn, cid)
         cur = conn.execute("UPDATE actions SET status='done', done_day=? WHERE id=? AND clinic_id=?",
                            (date.today().isoformat(), action_id, cid))
     if cur.rowcount != 1:
