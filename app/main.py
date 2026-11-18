@@ -545,7 +545,7 @@ def api_clinic_ask(body: AskIn, request: Request):
 @app.get("/qr", response_class=HTMLResponse)
 def qr_sheet(request: Request, new: int = 0):
     """Printable sheet: one QR code per WARD (not per room, so a report cannot point to one patient),
-    plus a Telegram QR per ward and the staff links."""
+    plus one for the staff room. The Telegram bot is offered as a link on the form each code opens."""
     cid = current_clinic(request)
     if cid is None:
         return RedirectResponse("/login", status_code=303)
@@ -556,13 +556,10 @@ def qr_sheet(request: Request, new: int = 0):
     for w in wards:
         w["url"] = f"{base}/r/{w['code']}"
         w["svg"] = qr_svg(w["url"])
-        tg = tg_link("w_" + w["code"])
-        w["tg_svg"] = qr_svg(tg, scale=3) if tg else None
     staff_url = f"{base}/c/{c['slug']}/staff"
-    staff_tg = tg_link("s_" + c["slug"])  # opens the bot straight in the staff form
     return templates.TemplateResponse(request, "qrsheet.html", {
         "new": bool(new), "wards": wards, "clinic": c, "staff_url": staff_url, "staff_svg": qr_svg(staff_url),
-        "staff_tg_svg": qr_svg(staff_tg, scale=3) if staff_tg else None, "bot": bot_username()})
+        "bot": bot_username()})
 
 
 @app.get("/api/health")
