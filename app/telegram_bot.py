@@ -24,7 +24,7 @@ from typing import Optional
 
 import httpx
 
-from . import ai, analytics, config, reports, terms, voice
+from . import ai, analytics, clinics, config, reports, terms, voice
 from .db import db, init_db
 
 SESSION_TTL = 30 * 60
@@ -93,6 +93,9 @@ T = {
         "rv_who": "👀 Faqat shifoxonaning sifat bo'yicha mas'ullari ko'radi.",
         "rv_agree": "«Roziman, yuborish» tugmasini bosib, yuqoridagi ma'lumot yuborilishiga hamda Foydalanish shartlari va maxfiylik siyosatiga rozilik bildirasiz: /privacy",
         "btn_agree": "✅ Roziman, yuborish",
+        "ask_clinic": "🏥 Qaysi klinika? Bo'limdagi QR-kodni skanerlang yoki klinika kodini yozing (QR-kod ostida, masalan: demo).",
+        "clinic_notfound": "Bunday klinika kodi topilmadi. QR-kod ostidagi kodni tekshirib, qayta yozing.",
+        "rv_clinic": "Klinika",
     },
     "ru": {
         "welcome": "🎙 <b>Ovoz</b> — сообщите анонимно.\nПомогите улучшить нашу клинику: отправьте голосовое сообщение или напишите о проблеме.",
@@ -154,6 +157,9 @@ T = {
         "rv_who": "👀 Увидит только служба качества клиники.",
         "rv_agree": "Нажимая «Согласен(на), отправить», вы соглашаетесь на отправку данных выше и с Условиями использования и конфиденциальности: /privacy",
         "btn_agree": "✅ Согласен(на), отправить",
+        "ask_clinic": "🏥 Какая клиника? Отсканируйте QR-код в отделении или напишите код клиники (под QR-кодом, например: demo).",
+        "clinic_notfound": "Клиника с таким кодом не найдена. Проверьте код под QR-кодом и напишите ещё раз.",
+        "rv_clinic": "Клиника",
     },
     "en": {
         "welcome": "🎙 <b>Ovoz</b> — tell us anonymously.\nHelp us improve our clinic: send a voice message or type about a problem.",
@@ -215,6 +221,9 @@ T = {
         "rv_who": "👀 Only the clinic's quality team will see it.",
         "rv_agree": "By tapping “I agree, send” you agree to sending the information above and to the Terms of use and privacy: /privacy",
         "btn_agree": "✅ I agree, send",
+        "ask_clinic": "🏥 Which clinic? Scan the QR code in the department, or type the clinic code (under the QR code, e.g. demo).",
+        "clinic_notfound": "No clinic with that code. Check the code under the QR code and type it again.",
+        "rv_clinic": "Clinic",
     },
 }
 
@@ -262,6 +271,9 @@ class Session:
     lang: str = "uz"
     # lang -> role -> ward -> detail -> text -> confirm | case_code -> case_view -> case_reply -> reply_confirm
     step: str = "lang"
+    clinic_id: Optional[int] = None   # set by the QR deep link (/start w_<ward> or c_<clinic>) or a typed clinic code
+    clinic_name: str = ""
+    clinic_slug: str = ""
     source: str = ""
     ward: str = ""
     rating: Optional[int] = None
@@ -354,10 +366,10 @@ class Bot:
     def on_message(self, chat_id, msg):
         text = (msg.get("text") or "").strip()
         if text.startswith("/start") or text.startswith("/help"):
-            return self.start(chat_id, msg.get("from"))
+            return self.start(chat_id, msg.get("from"), text)
         s = self._session(chat_id)
         if text.startswith("/privacy") or text.startswith("/terms"):
-            self.send(chat_id, terms.terms_html(s.lang if s else _guess_lang(msg.get("from"))))
+            self.send(chat_id, terms.terms_html(s.lang if s else _guess_lang(msg.get("from")), self._clinic(s)))
             if s and s.step == "confirm":  # put the review card back so they can agree or cancel
                 return self.ask_confirm(chat_id, s)
             if s and s.step == "reply_confirm":
@@ -373,6 +385,13 @@ class Bot:
 
         if s.step == "case_code" and text:
             return self.show_case(chat_id, s, text)
+        if s.step == "clinic" and text:
+            with db() as conn:
+                c = clinics.by_slug(conn, text.split()[0])
+            if not c:
+                return self.send(chat_id, t["clinic_notfound"])
+            s.clinic_id, s.clinic_name, s.clinic_slug = c["id"], c["name"], c["slug"]
+            return self.ask_role(chat_id, s)
         if s.step in ("case_reply", "reply_confirm"):
             if not text:
                 return self.send(chat_id, t["reply_text_only"])
@@ -391,6 +410,8 @@ class Bot:
             return self.send(chat_id, t["ask_text_staff" if s.source == "staff" else "ask_text"])
         if s.step == "case_code":
             return self.send(chat_id, t["case_ask"])
+        if s.step == "clinic":
+            return self.send(chat_id, t["ask_clinic"])
         return self.send(chat_id, t["start_first"])
 
     def on_voice(self, chat_id, s, audio):
@@ -412,10 +433,10 @@ class Bot:
         s.draft = result["text"][:3000]
         return self.ask_confirm(chat_id, s, demo=result.get("demo"))
 
-    def _agree_line(self, t):
+    def _agree_line(self, t, s=None):
         line = t["rv_agree"]
         if config.PUBLIC_URL:
-            line += f"\n{config.PUBLIC_URL}/privacy"
+            line += f"\n{config.PUBLIC_URL}/privacy" + (f"?c={s.clinic_slug}" if s and s.clinic_slug else "")
         return line
 
     def ask_confirm(self, chat_id, s, demo=False):
@@ -437,11 +458,12 @@ class Bot:
         parts = [
             t["review_title"],
             f"<b>{t['rv_msg']}:</b>\n<i>{html.escape(masked, quote=False)}</i>",
-            "\n".join([f"{t['rv_ward']}: {html.escape(reports.ward_name(w, s.lang) if w else '—', quote=False)}",
+            "\n".join([f"{t['rv_clinic']}: {html.escape(s.clinic_name or '—', quote=False)}",
+                       f"{t['rv_ward']}: {html.escape(reports.ward_name(w, s.lang) if w else '—', quote=False)}",
                        f"{t['rv_role']}: {role}", detail, when, f"{t['rv_lang']}: {LANG_NAMES[s.lang]}"]),
             f"{t['rv_not']}\n{t['rv_who']}",
             t["confirm_hint"] + ("\n" + t["voice_demo"] if demo else ""),
-            self._agree_line(t),
+            self._agree_line(t, s),
         ]
         return self.send(chat_id, "\n\n".join(parts), _kb([[(t["btn_agree"], "send")], [(t["btn_cancel"], "cancel")]]))
 
@@ -458,8 +480,12 @@ class Bot:
         s = self._session(chat_id)
         if data.startswith("lang:"):
             lang = data.split(":", 1)[1]
-            s = self._new_session(chat_id, lang if lang in T else "uz")
-            return self.ask_role(chat_id, s)
+            lang = lang if lang in T else "uz"
+            if s and s.step == "lang":
+                s.lang = lang  # keep the clinic / department that came with the QR link
+            else:
+                s = self._new_session(chat_id, lang)
+            return self.ask_role(chat_id, s) if s.clinic_id else self.ask_clinic(chat_id, s)
         if not s:
             return self.send(chat_id, T[_guess_lang(user)]["start_first"])
         t = T[s.lang]
@@ -467,25 +493,24 @@ class Bot:
         if data == "role:case":
             s.step = "case_code"
             return self.send(chat_id, t["case_ask"])
-        if data.startswith("role:") and s.step == "role":
+        if data.startswith("role:") and s.step == "role" and s.clinic_id:
             s.source = "staff" if data == "role:staff" else "patient"
+            if s.ward:  # the department came with the QR link
+                return self.ask_detail(chat_id, s)
             s.step = "ward"
             with db() as conn:
-                wards = reports.ward_list(conn)
+                wards = reports.ward_list(conn, s.clinic_id)
+            if not wards:
+                return self.send(chat_id, t["err"])
             return self.send(chat_id, t["ward"],
                              _kb([[(reports.ward_name(w, s.lang), "ward:" + w["code"])] for w in wards]))
         if data.startswith("ward:") and s.step == "ward":
             code = data.split(":", 1)[1]
             with db() as conn:
-                if not reports.ward_exists(conn, code):
+                if not reports.ward_exists(conn, code, s.clinic_id):  # only this clinic's departments
                     return self.send(chat_id, t["err"])
-            s.ward, s.step = code, "detail"
-            if s.source == "patient":
-                stars = [(str(i) + "★", f"rate:{i}") for i in range(1, 6)]
-                return self.send(chat_id, t["rate"], _kb([stars, [(t["btn_skip"], "rate:skip")]]))
-            return self.send(chat_id, t["staff_type"], _kb([[(t["h_near"], "harm:near")], [(t["h_none"], "harm:none")],
-                                                            [(t["h_minor"], "harm:minor")],
-                                                            [(t["h_serious"], "harm:serious")]]))
+            s.ward = code
+            return self.ask_detail(chat_id, s)
         if data.startswith("rate:") and s.step == "detail":
             v = data.split(":", 1)[1]
             s.rating = int(v) if v.isdigit() and 1 <= int(v) <= 5 else None
@@ -513,15 +538,54 @@ class Bot:
         # stale or out-of-order button: ignore quietly
 
     # ---- flows ----------------------------------------------------------------------------
-    def start(self, chat_id, user):
+    def start(self, chat_id, user, text=""):
+        """/start, or /start w_<ward code> / c_<clinic code> from a clinic's QR code (Telegram deep link)."""
         self._end(chat_id)
+        s = self._new_session(chat_id, _guess_lang(user))
+        payload = text.split(maxsplit=1)[1].strip() if len(text.split(maxsplit=1)) > 1 else ""
+        with db() as conn:
+            if payload.startswith("w_"):
+                w = reports.get_ward(conn, payload[2:])
+                if w:
+                    s.ward = w["code"]
+                    c = clinics.get(conn, w["clinic_id"])
+                else:
+                    c = None
+            elif payload.startswith("c_"):
+                c = clinics.by_slug(conn, payload[2:])
+            else:
+                c = None
+        if c:
+            s.clinic_id, s.clinic_name, s.clinic_slug = c["id"], c["name"], c["slug"]
         langs = [("O'zbekcha", "lang:uz"), ("Русский", "lang:ru"), ("English", "lang:en")]
-        return self.send(chat_id, "Tilni tanlang · Выберите язык · Choose a language", _kb([langs]))
+        head = f"🏥 <b>{html.escape(c['name'], quote=False)}</b>\n\n" if c else ""
+        return self.send(chat_id, head + "Tilni tanlang · Выберите язык · Choose a language", _kb([langs]))
+
+    def _clinic(self, s) -> Optional[dict]:
+        if not s or not s.clinic_id:
+            return None
+        with db() as conn:
+            return clinics.get(conn, s.clinic_id)
+
+    def ask_clinic(self, chat_id, s):
+        s.step = "clinic"
+        return self.send(chat_id, T[s.lang]["ask_clinic"])
+
+    def ask_detail(self, chat_id, s):
+        t = T[s.lang]
+        s.step = "detail"
+        if s.source == "patient":
+            stars = [(str(i) + "★", f"rate:{i}") for i in range(1, 6)]
+            return self.send(chat_id, t["rate"], _kb([stars, [(t["btn_skip"], "rate:skip")]]))
+        return self.send(chat_id, t["staff_type"], _kb([[(t["h_near"], "harm:near")], [(t["h_none"], "harm:none")],
+                                                        [(t["h_minor"], "harm:minor")],
+                                                        [(t["h_serious"], "harm:serious")]]))
 
     def ask_role(self, chat_id, s):
         t = T[s.lang]
         s.step = "role"
-        self.send(chat_id, f"{t['welcome']}\n\n{t['privacy']}\n\n{t['emergency']}")
+        head = f"🏥 <b>{html.escape(s.clinic_name, quote=False)}</b>\n" if s.clinic_name else ""
+        self.send(chat_id, f"{head}{t['welcome']}\n\n{t['privacy']}\n\n{t['emergency']}")
         return self.send(chat_id, t["who"], _kb([[(t["btn_patient"], "role:patient")], [(t["btn_staff"], "role:staff")],
                                                  [(t["btn_case"], "role:case")]]))
 

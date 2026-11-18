@@ -33,7 +33,7 @@ function renderReview() {
     ${rows.length ? `<table class="rv">${rows.map(([k, v]) => `<tr><th>${reviewEsc(k)}</th><td>${reviewEsc(v)}</td></tr>`).join("")}</table>` : ""}
     <div class="note info small">${t("rv_not")}<br>${t("rv_who")}</div>
     <label class="agree"><input type="checkbox" id="rv_ok">
-      <span>${t("rv_agree_pre")} <a href="/privacy" target="_blank" rel="noopener">${t("rv_terms")}</a>${t("rv_agree_post")}</span></label>
+      <span>${t("rv_agree_pre")} <a href="${typeof PRIVACY_URL !== "undefined" ? PRIVACY_URL : "/privacy"}" target="_blank" rel="noopener">${t("rv_terms")}</a>${t("rv_agree_post")}</span></label>
     <div id="rv_err" class="note bad hidden"></div>
     <div class="row" style="margin-top:12px">
       <button id="rv_send" disabled>${t("btn_agree")}</button>

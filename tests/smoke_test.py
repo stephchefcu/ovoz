@@ -35,7 +35,7 @@ check("urgent detected", ai.rule_triage("У мужа сильная боль в 
 codes = seed()
 clinic, anon = TestClient(app), TestClient(app)
 check("dashboard locked without login", anon.get("/api/dashboard").status_code == 401)
-check("login works", clinic.post("/login", data={"password": "demo"}, follow_redirects=False).status_code == 303)
+check("login works", clinic.post("/login", data={"clinic": "demo", "password": "demo"}, follow_redirects=False).status_code == 303)
 d = clinic.get("/api/dashboard").json()
 check("a cross-channel linked problem is found", d["kpi"]["linked_clusters"] >= 1)
 check("small groups are hidden or rolled up", d["kpi"]["hidden_small_groups"] > 0 and all(c["total"] >= d["privacy"]["k_min"] for c in d["clusters"]))
@@ -84,6 +84,46 @@ old = clinic.cookies.get("clinic_session")
 clinic.get("/logout", follow_redirects=False)
 check("logout ends the session",
       TestClient(app, cookies={"clinic_session": old}).get("/api/dashboard").status_code == 401)
-check("wrong password rejected", anon.post("/login", data={"password": "nope"}).status_code == 401)
+check("wrong password rejected", anon.post("/login", data={"clinic": "demo", "password": "nope"}).status_code == 401)
+
+# ---- many clinics: each sees and manages only its own data --------------------------------------
+clinic = TestClient(app)  # the earlier demo session was logged out above
+clinic.post("/login", data={"clinic": "demo", "password": "demo"})
+b = TestClient(app)
+r = b.post("/signup", data={"name": "Second Clinic", "slug": "second", "contact": "room 5", "password": "secondpass1",
+                            "password2": "secondpass1"}, follow_redirects=False)
+check("a new clinic can sign up", r.status_code == 303 and r.headers["location"].startswith("/settings"))
+check("clinic codes are unique", TestClient(app).post("/signup", data={"name": "Copy", "slug": "second",
+      "password": "secondpass1", "password2": "secondpass1"}).status_code == 400)
+check("new clinic starts empty", b.get("/api/settings").json()["wards"] == [] and b.get("/api/dashboard").json()["kpi"]["reports"] == 0)
+wcode = b.post("/api/wards", json={"name": "Cardiology", "name_uz": "Kardiologiya bo'limi", "name_ru": "Кардиология",
+                                   "unit": "Cardiology"}).json()["code"]
+check("clinic adds its own department", any(w["code"] == wcode for w in b.get("/api/settings").json()["wards"]))
+check("department pages show the clinic", "Second Clinic" in b.get("/r/" + wcode).text and "Kardiologiya" in b.get("/r/" + wcode).text)
+check("clinic page lists only its departments", "Kardiologiya" in anon.get("/c/second").text
+      and "Terapiya" not in anon.get("/c/second").text and "Kardiologiya" not in anon.get("/c/demo").text)
+r = anon.post("/api/report", json={"source": "patient", "ward_code": wcode, "text": "Navbat juda uzun, 3 soat kutdik.",
+                                   "lang": "uz", "agree": True, "terms_version": TV})
+check("report to the new clinic accepted", r.status_code == 200)
+bd = b.get("/api/dashboard").json()
+check("new clinic sees its report", bd["kpi"]["reports"] == 1)
+check("demo clinic does NOT see it", all("Navbat juda uzun" not in f["text"] for f in clinic.get("/api/dashboard").json()["feed"]))
+demo_report = clinic.get("/api/dashboard").json()["feed"][0]["id"]
+check("a clinic cannot question another clinic's report",
+      b.post("/api/clinic/ask", json={"report_id": demo_report, "body": "?"}).status_code == 404)
+demo_action = clinic.get("/api/dashboard").json()["actions"][0]["id"]
+check("a clinic cannot close another clinic's action", b.post(f"/api/actions/{demo_action}/done").status_code == 404)
+demo_ward = codes["Therapy ward"]
+check("a clinic cannot edit another clinic's department",
+      b.post("/api/wards/" + demo_ward, json={"name": "Hacked", "active": False}).status_code == 404)
+check("login needs the right clinic code", TestClient(app).post("/login", data={"clinic": "demo", "password": "secondpass1"}).status_code == 401)
+b.post("/api/wards/" + wcode, json={"name": "Cardiology", "active": False})
+check("removed department disappears from forms", anon.get("/r/" + wcode).status_code == 404 and
+      anon.post("/api/report", json={"source": "patient", "ward_code": wcode, "text": "Yana bir xabar matni",
+                                     "lang": "uz", "agree": True, "terms_version": TV}).status_code == 400)
+check("its past report is kept", b.get("/api/dashboard").json()["kpi"]["reports"] == 1)
+pv = anon.get("/privacy?c=second").text
+check("terms show the clinic's name and contact", "Second Clinic" in pv and "room 5" in pv)
+check("old /staff link still works", anon.get("/staff", follow_redirects=False).headers["location"] == "/c/demo/staff")
 
 sys.exit(1 if check.failed else 0)

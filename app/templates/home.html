@@ -1,36 +1,38 @@
 {% extends "base.html" %}
 {% block nav %}
-  {% if is_clinic %}<a href="/dashboard">Dashboard</a><a href="/logout">Log out</a>{% else %}<a href="/login">Clinic login</a>{% endif %}
+  {% if is_clinic %}<a href="/dashboard">Dashboard</a><a href="/logout">Log out</a>
+  {% else %}<a href="/login">Clinic login</a><a href="/signup">Sign up</a>{% endif %}
 {% endblock %}
 {% block content %}
 <div class="wrap">
   <h1>Ovoz</h1>
   <p><b>Clinic safety &amp; feedback, by voice.</b></p>
-  <p class="muted">Patients and staff speak up anonymously in Uzbek or Russian. The clinic privately sees the connected picture and fixes the causes.</p>
+  <p class="muted">Patients and staff speak up anonymously, by voice or text, in Uzbek, Russian or English, on the web
+    or in Telegram. Each clinic privately sees the connected picture and fixes the causes.</p>
 
   <div class="card">
-    <h2>For patients and relatives</h2>
-    <p class="small muted">In real use each ward has its own QR code (see the printable sheet). For the demo, open a ward page:</p>
+    <h2>For patients, relatives and staff</h2>
+    <p>Scan the Ovoz QR code in your clinic's department, or open the clinic's page.</p>
+    {% if bot %}<p class="small">In Telegram: <a href="https://t.me/{{ bot }}">@{{ bot }}</a> (scan the clinic's QR code so the bot knows your clinic and department).</p>{% endif %}
+    <p class="small"><a href="/case">Already reported? Follow up with your case code</a></p>
+  </div>
+
+  <div class="card">
+    <h2>For clinics</h2>
+    <p class="muted small">Sign up, add your departments, print your QR codes. Your reports, departments and dashboard
+      are visible only to your clinic.</p>
     <div class="row">
-      {% for w in wards %}<a class="btn ghost small" href="/r/{{ w.code }}">{{ w.name }}</a>{% endfor %}
+      <a class="btn" href="/signup">Sign up your clinic</a>
+      <a class="btn ghost" href="/login">Clinic login</a>
     </div>
-    <p class="small" style="margin-top:12px"><a href="/case">Already reported? Follow up with your case code</a></p>
   </div>
 
-  <div class="card">
-    <h2>For staff</h2>
-    <p class="small muted">Anonymous reporting of mistakes and near-misses.</p>
-    <a class="btn" href="/staff">Report a mistake or near-miss</a>
+  {% if demo %}
+  <div class="card soft">
+    <h2>Demo clinic</h2>
+    <p class="small muted">A clinic with invented data, to try every part of Ovoz. Clinic code: <code>demo</code>.</p>
+    <a class="btn ghost" href="/c/demo">Open the demo clinic</a>
   </div>
-
-  <div class="card">
-    <h2>For the clinic (director, quality officer)</h2>
-    <div class="row">
-      <a class="btn" href="/dashboard">Open dashboard</a>
-      <a class="btn ghost" href="/qr">Printable QR codes</a>
-    </div>
-    <p class="small muted" style="margin-top:10px">Ward screens ("You said, we did"):
-      {% for w in wards %}<a href="/board/{{ w.code }}">{{ w.name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
-  </div>
+  {% endif %}
 </div>
 {% endblock %}

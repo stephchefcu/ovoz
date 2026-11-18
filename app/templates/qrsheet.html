@@ -1,23 +1,37 @@
 {% extends "base.html" %}
-{% block title %}QR codes{% endblock %}
-{% block nav %}<a href="/dashboard">Dashboard</a>{% endblock %}
+{% block title %}QR codes · {{ clinic.name }} · Ovoz{% endblock %}
+{% block nav %}<a href="/dashboard">Dashboard</a><a href="/settings">Settings</a>{% endblock %}
 {% block content %}
 <div class="wrap wide">
   <div class="noprint">
     <h1>Printable QR codes</h1>
-    <p class="muted">One code per <b>ward</b> (not per room), so a report cannot point to a single patient. Print this page
-      and post each code where patients and relatives can see it.</p>
+    <p class="muted">{{ clinic.name }}. One code per <b>department</b> (not per room), so a report cannot point to a single
+      patient. Print this page and post each code where patients and relatives can see it.
+      {% if bot %}The small code opens the Telegram bot already set to that department.{% endif %}
+      The last poster is for the staff room.</p>
     <button onclick="window.print()">Print</button>
+    {% if not wards %}<p class="note warn">No departments yet. <a href="/settings">Add them in Settings</a> first.</p>{% endif %}
   </div>
   <div style="margin-top:16px">
     {% for w in wards %}
       <div class="qr">
+        <div class="small muted">{{ clinic.name }}</div>
         <div style="font-weight:700;font-size:1.05rem">{{ w.name_uz or w.name }}</div>
-        <div class="small muted">{{ w.name_ru or w.unit }}</div>
+        <div class="small muted">{{ w.name_ru or w.name }}</div>
         {{ w.svg|safe }}
-        <div style="font-weight:600">Scan to tell us anonymously<br>Anonim xabar bering · Сообщите анонимно</div>
+        <div style="font-weight:600">Anonim xabar bering · Сообщите анонимно<br><span class="small">Tell us anonymously</span></div>
+        {% if w.tg_svg %}<div class="tgqr">{{ w.tg_svg|safe }}<div class="small">Telegram</div></div>{% endif %}
       </div>
     {% endfor %}
+    <div class="qr">
+      <div class="small muted">{{ clinic.name }}</div>
+      <div style="font-weight:700;font-size:1.05rem">Xodimlar uchun · Для сотрудников</div>
+      <div class="small muted">For staff</div>
+      {{ staff_svg|safe }}
+      <div style="font-weight:600">Xatolik yoki xavfli holat haqida anonim xabar<br><span class="small">Сообщить об ошибке анонимно</span></div>
+      {% if staff_tg_svg %}<div class="tgqr">{{ staff_tg_svg|safe }}<div class="small">Telegram</div></div>{% endif %}
+    </div>
   </div>
+  <p class="small muted noprint">Clinic code for the Telegram bot: <code>{{ clinic.slug }}</code></p>
 </div>
 {% endblock %}

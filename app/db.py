@@ -5,6 +5,16 @@ from pathlib import Path
 from . import config
 
 SCHEMA = """
+-- Each clinic has its own login, departments, reports and actions. One Ovoz site and bot serve them all.
+CREATE TABLE IF NOT EXISTS clinics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL UNIQUE,      -- public clinic code: login, links, typed in the bot
+    name TEXT NOT NULL,
+    contact TEXT,                   -- shown in the Terms ("ask ... to delete a report")
+    password_hash TEXT NOT NULL,
+    created_day TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS wards (
     code TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -81,6 +91,10 @@ MIGRATIONS = [
     ("wards", "name_uz", "TEXT"),          # department name in Uzbek (falls back to `name`)
     ("wards", "name_ru", "TEXT"),          # department name in Russian (falls back to `name`)
     ("reports", "terms_version", "TEXT"),  # which Terms & Privacy version the reporter agreed to
+    ("wards", "clinic_id", "INTEGER"),     # the clinic this department belongs to
+    ("wards", "active", "INTEGER NOT NULL DEFAULT 1"),  # 0 = removed from forms, past reports kept
+    ("reports", "clinic_id", "INTEGER"),
+    ("actions", "clinic_id", "INTEGER"),
 ]
 
 
@@ -90,3 +104,29 @@ def init_db():
         for table, col, typ in MIGRATIONS:
             if col not in [r[1] for r in conn.execute(f"PRAGMA table_info({table})")]:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typ}")
+        for table in ("wards", "reports", "actions"):
+            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table}_clinic ON {table}(clinic_id)")
+        _adopt_orphans(conn)
+
+
+def _adopt_orphans(conn):
+    """Data from before clinics existed becomes the "demo" clinic (password: CLINIC_PASSWORD from .env)."""
+    orphans = any(conn.execute(f"SELECT 1 FROM {t} WHERE clinic_id IS NULL LIMIT 1").fetchone()
+                  for t in ("wards", "reports", "actions"))
+    if not orphans:
+        return
+    from .util import hash_password  # local import: util imports config only
+    row = conn.execute("SELECT id FROM clinics WHERE slug='demo'").fetchone()
+    if row:
+        cid = row[0]
+    else:
+        from datetime import date
+        cid = conn.execute(
+            "INSERT INTO clinics (slug, name, contact, password_hash, created_day) VALUES (?,?,?,?,?)",
+            ("demo", config.CLINIC_NAME or "Demo clinic", config.CLINIC_CONTACT or None,
+             hash_password(config.CLINIC_PASSWORD), date.today().isoformat())).lastrowid
+    for t in ("wards", "actions"):
+        conn.execute(f"UPDATE {t} SET clinic_id=? WHERE clinic_id IS NULL", (cid,))
+    conn.execute("UPDATE reports SET clinic_id=(SELECT clinic_id FROM wards WHERE wards.code=reports.ward_code) "
+                 "WHERE clinic_id IS NULL")
+    conn.execute("UPDATE reports SET clinic_id=? WHERE clinic_id IS NULL", (cid,))

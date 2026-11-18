@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import secrets
 
 from . import config
@@ -17,3 +18,20 @@ def hash_code(code: str) -> str:
     if "-" not in clean and len(clean) == 8:
         clean = f"{clean[:4]}-{clean[4:]}"
     return hashlib.sha256((config.SECRET + clean).encode()).hexdigest()
+
+
+def hash_password(password: str) -> str:
+    """Salted PBKDF2-SHA256 (standard library only). Format: pbkdf2$iterations$salt$hash."""
+    salt = secrets.token_hex(16)
+    n = 200_000
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), n).hex()
+    return f"pbkdf2${n}${salt}${digest}"
+
+
+def verify_password(password: str, stored: str) -> bool:
+    try:
+        _, n, salt, digest = stored.split("$")
+        got = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), int(n)).hex()
+    except (ValueError, AttributeError):
+        return False
+    return hmac.compare_digest(got, digest)

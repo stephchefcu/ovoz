@@ -28,7 +28,7 @@ p { margin: .3rem 0 .8rem; }
 .muted { color: var(--muted); }
 .small { font-size: .88rem; }
 label { display: block; font-weight: 600; margin: 12px 0 6px; }
-textarea, select, input[type=text], input[type=password], input[type=date] {
+textarea, select, input:not([type]), input[type=text], input[type=password], input[type=date] {
   width: 100%; font: inherit; color: inherit; padding: 10px 12px; border: 1px solid #c3ced6; border-radius: 10px; background: #fff; }
 textarea { min-height: 130px; resize: vertical; }
 button, .btn { font: inherit; font-weight: 600; border: 0; border-radius: 12px; padding: 12px 18px; cursor: pointer;
@@ -107,3 +107,7 @@ table.rv { margin-bottom: 12px; }
 table.rv th { width: 38%; }
 label.agree { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; margin-top: 12px; cursor: pointer; }
 label.agree input { width: 22px; height: 22px; margin-top: 2px; flex: none; }
+.qr .tgqr { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 6px; }
+.qr .tgqr svg { width: 96px; height: 96px; }
+.tgbtn { display: inline-block; margin-top: 8px; }
+#wards td input { min-width: 120px; padding: 6px 8px; }

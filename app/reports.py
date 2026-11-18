@@ -7,9 +7,11 @@ from . import ai, analytics, config
 from .util import hash_code, new_case_code
 
 
-def ward_list(conn):
+def ward_list(conn, clinic_id: int):
+    """Active departments of one clinic (what reporters can choose)."""
     return [dict(r) for r in conn.execute(
-        "SELECT code, name, name_uz, name_ru, unit FROM wards ORDER BY unit, name")]
+        "SELECT code, name, name_uz, name_ru, unit FROM wards WHERE clinic_id=? AND active=1 ORDER BY unit, name",
+        (clinic_id,))]
 
 
 def ward_name(ward: dict, lang: str) -> str:
@@ -18,18 +20,25 @@ def ward_name(ward: dict, lang: str) -> str:
 
 
 def get_ward(conn, ward_code: str) -> Optional[dict]:
-    r = conn.execute("SELECT code, name, name_uz, name_ru, unit FROM wards WHERE code=?", (ward_code,)).fetchone()
+    """An ACTIVE department with its clinic (None if unknown or removed)."""
+    r = conn.execute("SELECT w.code, w.name, w.name_uz, w.name_ru, w.unit, w.clinic_id, c.slug AS clinic_slug, "
+                     "c.name AS clinic_name FROM wards w JOIN clinics c ON c.id=w.clinic_id "
+                     "WHERE w.code=? AND w.active=1", (ward_code,)).fetchone()
     return dict(r) if r else None
 
 
-def ward_exists(conn, ward_code: str) -> bool:
-    return conn.execute("SELECT 1 FROM wards WHERE code=?", (ward_code,)).fetchone() is not None
+def ward_exists(conn, ward_code: str, clinic_id: Optional[int] = None) -> bool:
+    w = get_ward(conn, ward_code)
+    return w is not None and (clinic_id is None or w["clinic_id"] == clinic_id)
 
 
 def save_report(conn, source: str, ward_code: str, text: str, lang: str, rating: Optional[int] = None,
                 harm: str = "none", near_miss: bool = False, terms_version: Optional[str] = None) -> dict:
     """Mask, triage and store one report. Returns {"case_code", "urgent"}. Only masked text is stored.
     terms_version records which Terms & Privacy version the person agreed to before sending."""
+    ward = get_ward(conn, ward_code)
+    if not ward:
+        raise ValueError("unknown or removed department")
     result = ai.analyze(text, source, harm, near_miss)
     now = analytics.local_now()
     delay = random.uniform(0, config.STAFF_DELAY_HOURS) * 3600 if source == "staff" else 0
@@ -37,11 +46,12 @@ def save_report(conn, source: str, ward_code: str, text: str, lang: str, rating:
     code = new_case_code()
     conn.execute(
         "INSERT INTO reports (source, ward_code, text_masked, summary, category, theme, severity, urgent, "
-        "near_miss, rating, lang, created_day, time_bucket, release_at, case_hash, terms_version) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "near_miss, rating, lang, created_day, time_bucket, release_at, case_hash, terms_version, clinic_id) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (source, ward_code, result["masked"], result["summary"], result["category"], result["theme"],
          result["severity"], int(result["urgent"]), int(result["near_miss"]), rating, lang,
-         now.date().isoformat(), analytics.time_bucket(now), release_at, hash_code(code), terms_version),
+         now.date().isoformat(), analytics.time_bucket(now), release_at, hash_code(code), terms_version,
+         ward["clinic_id"]),
     )
     return {"case_code": code, "urgent": result["urgent"]}
 
