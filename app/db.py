@@ -96,6 +96,9 @@ MIGRATIONS = [
     ("reports", "clinic_id", "INTEGER"),
     ("actions", "clinic_id", "INTEGER"),
     ("reports", "reporter", "TEXT"),       # patient / relative / staff (who is speaking, never who they are)
+    ("clinics", "plan", "TEXT"),           # paid plan: klinika / network (empty = not paying), see plans.py
+    ("clinics", "paid_until", "TEXT"),     # last paid day (empty = no end date)
+    ("clinics", "trial_until", "TEXT"),    # last day of the free Klinika trial
 ]
 
 
@@ -108,6 +111,8 @@ def init_db():
         for table in ("wards", "reports", "actions"):
             conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table}_clinic ON {table}(clinic_id)")
         _adopt_orphans(conn)
+        from . import plans  # local import: plans imports pricing only
+        plans.migrate(conn)
 
 
 def _adopt_orphans(conn):

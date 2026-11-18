@@ -95,7 +95,7 @@ Telegram bots, or (rarely) big international incident-reporting systems that are
    department, never per report.
 
 **Be honest about the gaps:** no real-clinic pilot yet; AI sorting needs a model key (otherwise keyword rules); it runs
-from one laptop through a temporary link; no staff roles yet; plans are not enforced in the app. Strongest next step: a
+from one laptop through a temporary link; no staff roles yet; no online payment. Strongest next step: a
 pilot in one clinic with numbers (reports per week, share linked, problems fixed within 30 days).
 
 ## What to say about privacy
@@ -158,6 +158,20 @@ Ctrl+C in the cloudflared tab.
   are kept in the stash).
 - Starting everything over (Cmd+Q) also stops the tunnel: the link changes, so update it here and reprint the QR codes.
 Code: https://github.com/stephchefcu/ovoz (public). Keys live only in `.env`: never commit it.
+
+## Plans
+
+New clinics get Klinika free for 60 days, then Start (free, up to 3 departments, keyword sorting, no recurring problems,
+warnings, actions or board). Klinika has everything but AI root-cause help; Network has everything. No plan ever blocks
+a report. No online payment yet: after a clinic pays, set its plan by hand.
+
+```bash
+.venv/bin/python -m app.plans list
+```
+```bash
+.venv/bin/python -m app.plans set <clinic_code> klinika --until 2027-12-31
+```
+`trial <clinic_code> --days 30` extends a trial; `set <clinic_code> start` ends a paid plan. Prices: `app/pricing.py`.
 
 ## Logo
 

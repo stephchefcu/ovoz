@@ -101,6 +101,14 @@ Object.assign(I18N.uz, {
   po_staff_band: "Xodimlar uchun",
   po_staff_title: "Xatolik haqida anonim xabar",
   po_staff_sub: "Hech kim ayblanmaydi",
+  // plan (dashboard, settings)
+  pl_n_start: "Start", pl_n_klinika: "Klinika", pl_n_network: "Tarmoq", pl_trial_tag: "sinov",
+  pl_trial: "Klinika sinovi: {days} kun qoldi.",
+  pl_start: "Start tarifi (bepul): takrorlanuvchi muammolar, ogohlantirish va choralar Klinika tarifida.",
+  pl_ending: "{plan} tarifi {until} da tugaydi.",
+  pl_over: "{used} ta bo'lim, tarif {limit} tagacha: hammasi murojaat qabul qiladi, yangisini qo'shib bo'lmaydi.",
+  pl_limit: "Tarifingiz {n} tagacha faol bo'limga ruxsat beradi.",
+  pl_line: "Tarif: {plan} · bo'limlar {used} / {limit}", pl_unlimited: "cheksiz",
 });
 
 Object.assign(I18N.ru, {
@@ -196,6 +204,14 @@ Object.assign(I18N.ru, {
   po_staff_band: "Для сотрудников",
   po_staff_title: "Сообщите об ошибке анонимно",
   po_staff_sub: "Никого не обвиняют",
+  // plan (dashboard, settings)
+  pl_n_start: "Старт", pl_n_klinika: "Клиника", pl_n_network: "Сеть", pl_trial_tag: "пробный",
+  pl_trial: "Пробный период «Клиника»: осталось {days} дн.",
+  pl_start: "Тариф «Старт» (бесплатно): повторяющиеся проблемы, предупреждения и меры — в тарифе «Клиника».",
+  pl_ending: "Тариф «{plan}» заканчивается {until}.",
+  pl_over: "{used} отделений, тариф позволяет {limit}: все принимают обращения, новые добавить нельзя.",
+  pl_limit: "Ваш тариф позволяет {n} активных отделений.",
+  pl_line: "Тариф: {plan} · отделения {used} / {limit}", pl_unlimited: "без ограничений",
 });
 
 Object.assign(I18N.en, {
@@ -290,4 +306,41 @@ Object.assign(I18N.en, {
   po_staff_band: "For staff",
   po_staff_title: "Report a mistake anonymously",
   po_staff_sub: "No one is blamed",
+  // plan (dashboard, settings)
+  pl_n_start: "Start", pl_n_klinika: "Klinika", pl_n_network: "Network", pl_trial_tag: "trial",
+  pl_trial: "Klinika trial: {days} days left.",
+  pl_start: "Start plan (free): recurring problems, warnings and actions are part of Klinika.",
+  pl_ending: "{plan} plan ends on {until}.",
+  pl_over: "{used} departments, plan allows {limit}: all keep taking reports, new ones can't be added.",
+  pl_limit: "Your plan allows {n} active departments.",
+  pl_line: "Plan: {plan} · departments {used} / {limit}", pl_unlimited: "unlimited",
 });
+
+// The clinic's plan: one short line on the dashboard and settings. <div id="plannote" data-plan='{...}'>
+function renderPlan() {
+  document.querySelectorAll("[data-plan]").forEach(el => {
+    let p;
+    try { p = JSON.parse(el.dataset.plan); } catch (e) { return; }
+    const name = t("pl_n_" + p.key) + (p.trial ? " (" + t("pl_trial_tag") + ")" : "");
+    const lines = [];
+    if (el.dataset.planLine !== undefined) {
+      lines.push(["", tf("pl_line", { plan: name, used: p.departments_used,
+        limit: p.departments === null ? t("pl_unlimited") : p.departments })]);
+    } else if (p.trial) lines.push([p.days_left <= 7 ? "warn" : "info", tf("pl_trial", { days: p.days_left })]);
+    else if (p.key === "start") lines.push(["warn", t("pl_start")]);
+    else if (p.days_left !== null && p.days_left <= 14) lines.push(["warn", tf("pl_ending", { plan: name, until: p.until })]);
+    if (p.over_limit && el.dataset.planLine === undefined)
+      lines.push(["info", tf("pl_over", { used: p.departments_used, limit: p.departments })]);
+    el.replaceChildren(...lines.map(([cls, text]) => {
+      const d = document.createElement("div");
+      d.className = cls ? "note small " + cls : "small muted";
+      d.append(text + " ");
+      const a = document.createElement("a");
+      a.href = "/pricing?lang=" + LANG; a.textContent = t("su_pricing");
+      d.append(a);
+      return d;
+    }));
+  });
+}
+document.addEventListener("DOMContentLoaded", renderPlan);
+document.addEventListener("langchange", renderPlan);

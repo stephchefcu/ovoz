@@ -15,6 +15,9 @@
   </div>
   {% endif %}
 
+  <div id="plannote" data-plan='{{ plan | tojson }}'></div>
+  <div data-plan='{{ plan | tojson }}' data-plan-line style="margin:0 0 12px"></div>
+
   <div class="card">
     <h2 style="margin-top:0" data-i18n="st_deps">Departments</h2>
     <p class="small muted" data-i18n="st_deps_help">Give each department a name in Uzbek and Russian too.</p>
@@ -101,17 +104,19 @@
       tr.querySelector(".toggle").addEventListener("click", async e => {
         const active = e.target.dataset.active === "1";
         if (!active && !confirm(t("st_confirm_remove"))) return;
-        (await post("/api/wards/" + tr.dataset.code, body(active))).ok ? load() : alert(t("st_err_change"));
+        const r = await post("/api/wards/" + tr.dataset.code, body(active));
+        r.ok ? load() : alert(r.status === 403 ? LIMIT_MSG_FOR() : t("st_err_change"));
       });
     });
   }
 
+  const LIMIT_MSG_FOR = () => tf("pl_limit", { n: {{ plan.departments | tojson }} });
   $("add").addEventListener("click", async () => {
     $("w_err").classList.add("hidden");
     const b = { name: $("n_name").value.trim(), name_uz: $("n_uz").value.trim(), name_ru: $("n_ru").value.trim(), unit: $("n_unit").value.trim() };
     if (b.name.length < 2) { $("w_err").textContent = t("st_err_name_en"); $("w_err").classList.remove("hidden"); return; }
     const r = await post("/api/wards", b);
-    if (!r.ok) { $("w_err").textContent = t("st_err_add"); $("w_err").classList.remove("hidden"); return; }
+    if (!r.ok) { $("w_err").textContent = r.status === 403 ? LIMIT_MSG_FOR() : t("st_err_add"); $("w_err").classList.remove("hidden"); return; }
     ["n_name", "n_uz", "n_ru", "n_unit"].forEach(id => $(id).value = "");
     load();
   });

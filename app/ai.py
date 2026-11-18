@@ -369,11 +369,12 @@ _TRIAGE_SYSTEM = (
 )
 
 
-def analyze(text: str, source: str, harm: str = "none", near_miss_flag: bool = False):
-    """Mask, then triage. Returns dict ready to store."""
+def analyze(text: str, source: str, harm: str = "none", near_miss_flag: bool = False, use_llm: bool = True):
+    """Mask, then triage. Returns dict ready to store.
+    use_llm=False (the clinic's plan has no AI sorting): keyword rules only; masking and urgent flags are the same."""
     masked = mask_text(text)
     result = rule_triage(masked, source, harm, near_miss_flag)
-    llm = llm_json(_TRIAGE_SYSTEM, f"source: {source}\nreport: {masked}")
+    llm = llm_json(_TRIAGE_SYSTEM, f"source: {source}\nreport: {masked}") if use_llm else None
     if isinstance(llm, dict) and llm.get("category") in CATEGORIES:
         try:
             result["category"] = llm["category"]
@@ -750,7 +751,8 @@ def theme_name(theme: str, lang: str = "en") -> str:
     return THEMES_I18N.get(lang, {}).get(theme) or THEMES.get(theme, theme)
 
 
-def rca(theme: str, unit_label: str, patient_texts, staff_summaries, lang: str = "en"):
+def rca(theme: str, unit_label: str, patient_texts, staff_summaries, lang: str = "en", use_llm: bool = True):
+    """Root-cause suggestions. use_llm=False (plan without AI root-cause help): standard suggestions per theme."""
     lang = lang if lang in _RCA_SUMMARY else "en"
     rules = _RCA_FALLBACK_I18N.get(lang, _RCA_FALLBACK)
     fb = rules.get(theme, rules["other"])
@@ -766,8 +768,8 @@ def rca(theme: str, unit_label: str, patient_texts, staff_summaries, lang: str =
         "patient_reports": patient_texts[:8],
         "staff_summaries": staff_summaries[:8],
     }
-    llm = llm_json(_RCA_SYSTEM.replace("{language}", _LANG_NAMES[lang]), json.dumps(payload, ensure_ascii=False),
-                   timeout=60.0, effort="medium", max_tokens=6000)
+    llm = (llm_json(_RCA_SYSTEM.replace("{language}", _LANG_NAMES[lang]), json.dumps(payload, ensure_ascii=False),
+                    timeout=60.0, effort="medium", max_tokens=6000) if use_llm else None)
     if isinstance(llm, dict) and isinstance(llm.get("whys"), list) and isinstance(llm.get("fixes"), list):
         out["summary"] = str(llm.get("summary", out["summary"]))
         out["whys"] = [str(x) for x in llm["whys"]][:6]

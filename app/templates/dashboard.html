@@ -8,6 +8,7 @@
     <div><h1 style="margin-bottom:2px">{{ clinic.name }}</h1><div class="small muted"><span data-i18n="nav_dashboard">Dashboard</span> · <span data-i18n="clinic_code_l">clinic code</span> <code>{{ clinic.slug }}</code></div></div>
     <div class="small muted" id="mode"></div>
   </div>
+  <div id="plannote" data-plan='{{ plan | tojson }}'></div>
   <div class="small muted" id="privnote" style="margin:4px 0 12px"></div>
 
   <div class="card" id="reports">
@@ -23,12 +24,14 @@
     <div id="radar"></div>
   </div>
 
+  <div id="insights">
   <h2 style="margin-top:20px"><span data-i18n="db_clusters">Recurring problems</span> <span class="small muted" data-i18n="db_clusters_sub">(patients and staff combined)</span></h2>
   <div id="clusters"></div>
+  </div>
 
   <div class="grid two" style="margin-top:14px">
     <div>
-      <div class="card">
+      <div class="card" id="actionscard">
         <h2 data-i18n="db_actions">Action tracker</h2>
         <div id="actions"></div>
       </div>
@@ -75,11 +78,14 @@
     $("privnote").textContent = tf("db_privacy", { k: d.privacy.k_min, days: d.privacy.window_days });
 
     const k = d.kpi;
+    const insights = !d.plan || d.plan.insights;
+    $("insights").classList.toggle("hidden", !insights);
+    $("actionscard").classList.toggle("hidden", !insights);
     // Headline = problems fixed. Report counts are context: more reports usually means a safer culture.
     $("kpis").innerHTML = [
       [t("db_k_fixed"), k.fixed, "head"], [t("db_k_open"), k.open_actions], [t("db_k_linked"), k.linked_clusters],
       [t("db_k_urgent"), k.urgent], [t("db_k_reports"), k.reports], [t("db_k_ps"), k.patient + " / " + k.staff],
-    ].map(([a, b, c]) => `<div class="kpi ${c || ""}"><b>${b}</b><span>${esc(a)}</span></div>`).join("");
+    ].filter(([, b]) => b !== null && b !== undefined).map(([a, b, c]) => `<div class="kpi ${c || ""}"><b>${b}</b><span>${esc(a)}</span></div>`).join("");
 
 
     $("radarbox").classList.toggle("hidden", !d.radar.length);
@@ -150,6 +156,7 @@
     const c = DATA.clusters[i];
     openModal(`<h2>${esc(t("db_rca"))}</h2><p class="muted">${esc(place(c.label))} — ${esc(theme(c))}</p><p>${esc(t("db_thinking"))}</p>`);
     const r = await fetch("/api/clusters/rca", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: c.key, lang: LANG }) });
+    if (!r.ok) { closeModal(); load(); return; }
     const j = await r.json();
     window._rca = { c, j };
     openModal(`

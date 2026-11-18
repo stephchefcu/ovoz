@@ -40,9 +40,12 @@ def slug_taken(conn, slug: str) -> bool:
 
 
 def create(conn, name: str, slug: str, password: str, contact: str = "") -> int:
+    """A new clinic starts with the free Klinika trial (see plans.py)."""
+    from .plans import trial_end  # local import: plans imports pricing only
     return conn.execute(
-        "INSERT INTO clinics (slug, name, contact, password_hash, created_day) VALUES (?,?,?,?,?)",
-        (slug, name.strip(), contact.strip() or None, hash_password(password), date.today().isoformat())).lastrowid
+        "INSERT INTO clinics (slug, name, contact, password_hash, created_day, trial_until) VALUES (?,?,?,?,?,?)",
+        (slug, name.strip(), contact.strip() or None, hash_password(password), date.today().isoformat(),
+         trial_end())).lastrowid
 
 
 def check_login(conn, slug: str, password: str) -> Optional[dict]:

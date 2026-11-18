@@ -165,6 +165,39 @@ dd = clinic.get("/api/dashboard").json()
 check("headline metric is problems fixed", "fixed" in dd["kpi"])
 check("wards are listed A-Z, not ranked", [h["label"].lower() for h in dd["heat"]] == sorted(h["label"].lower() for h in dd["heat"]))
 
+# ---- plans: trial, Start limits, reports never blocked ----------------------------------------
+from app import plans  # noqa: E402
+from app.db import db as _db  # noqa: E402
+with _db() as conn:
+    sid = conn.execute("SELECT id FROM clinics WHERE slug='second'").fetchone()[0]
+    check("demo clinic is on Network", plans.for_clinic(conn, 1)["key"] == "network" or
+          plans.for_clinic(conn, conn.execute("SELECT id FROM clinics WHERE slug='demo'").fetchone()[0])["key"] == "network")
+    p = plans.for_clinic(conn, sid)
+    check("a new clinic starts on the Klinika trial", p["key"] == "klinika" and p["trial"] and p["days_left"] == 60)
+    conn.execute("UPDATE clinics SET trial_until='2000-01-01' WHERE id=?", (sid,))  # trial over -> Start
+sc = TestClient(app)
+sc.post("/login", data={"clinic": "second", "password": "secondpass1"})
+sd = sc.get("/api/dashboard").json()
+check("Start: analysis is not sent, urgent and latest reports are",
+      sd["plan"]["key"] == "start" and sd["clusters"] == [] and sd["radar"] == [] and sd["kpi"]["linked_clusters"] is None
+      and "urgent" in sd and "feed" in sd)
+check("Start: root-cause help and actions are refused",
+      sc.post("/api/clusters/rca", json={"key": "x|y"}).status_code == 403
+      and sc.post("/api/actions", json={"theme": "other", "title": "Fix it"}).status_code == 403)
+added = [sc.post("/api/wards", json={"name": f"Dept {i}"}).status_code for i in range(5)]
+with _db() as conn:
+    used = plans.active_departments(conn, sid)
+check("Start: no more than 3 active departments can be added", used == 3 and added[-1] == 403)
+sw = [w for w in sc.get("/api/settings").json()["wards"] if w["active"]][0]["code"]
+import app.main as _main  # noqa: E402
+_main._RATE.clear()  # earlier checks used up this test connection's report allowance
+check("Start: reports still go through and are stored",
+      TestClient(app).post("/api/report", json={"source": "patient", "ward_code": sw, "text": "Navbat juda uzun edi", "lang": "uz",
+                                     "agree": True, "terms_version": TV}).status_code == 200)
+with _db() as conn:
+    plans.set_plan(conn, sid, "klinika", "2099-12-31")
+check("paid Klinika plan brings the analysis back", sc.get("/api/dashboard").json()["plan"]["insights"] is True)
+
 import re as _re  # noqa: E402
 _emo = _re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2300-\u23FF\uFE0F]")
 pages = [anon.get(u).text for u in ("/", "/c/demo", "/c/demo/staff", "/r/" + codes["Therapy ward"], "/case", "/privacy?c=demo")]
