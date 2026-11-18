@@ -60,7 +60,7 @@ Object.assign(I18N.uz, {
   db_radar_row: "shu hafta {n} ta murojaat, odatda taxminan {usual} ta.",
   db_clusters: "Takrorlanuvchi muammolar", db_clusters_sub: "(bemorlar va xodimlar birgalikda)",
   db_clusters_help: "Ham bemorlar, ham xodimlar ko'rgan muammo «bog'langan» deb belgilanadi. Xodimlar murojaatlari faqat neytral xulosa sifatida ko'rsatiladi.",
-  db_actions: "Vazifalar", db_feed: "So'nggi murojaatlar",
+  db_actions: "Vazifalar", db_feed: "Murojaatlar",
   db_feed_help: "Qo'shimcha savol bering: murojaat qilgan kishi uni o'z kodini kiritib ko'radi (shaxsini aytishi shart emas).",
   db_heat: "Murojaatlar qayerdan keladi", db_heat_sub: "(A–Z, reyting emas)", db_sev: "jiddiylik {n}/5",
   db_n_patient: "{n} bemor", db_n_staff: "{n} xodim", db_n_near: "{n} ta oz qolgan holat", db_linked: "bog'langan: ikkala tomon ko'rgan",
@@ -88,6 +88,9 @@ Object.assign(I18N.uz, {
   cat_equipment: "Jihozlar / sharoit", cat_behavior: "Xodimlar muomalasi", cat_communication: "Ma'lumot / muloqot",
   cat_pain: "Og'riqni davolash", cat_privacy: "Maxfiylik", cat_billing: "To'lovlar", cat_food: "Ovqat / qulaylik", cat_other: "Boshqa",
   tb_morning: "ertalab", tb_afternoon: "kunduzi", tb_night: "kechasi",
+  db_no_reports: "Hali murojaatlar yo'q. Sinab ko'rish uchun QR kodni skanerlang.",
+  db_show_all: "Hammasini ko'rsatish ({n})",
+  db_show_less: "Kamroq ko'rsatish",
 });
 
 Object.assign(I18N.ru, {
@@ -143,7 +146,7 @@ Object.assign(I18N.ru, {
   db_radar_row: "{n} обращ. на этой неделе, обычно около {usual}.",
   db_clusters: "Повторяющиеся проблемы", db_clusters_sub: "(пациенты и сотрудники вместе)",
   db_clusters_help: "Проблема, которую видят и пациенты, и сотрудники, отмечена как «связанная». Обращения сотрудников показываются только как нейтральные резюме.",
-  db_actions: "Задачи", db_feed: "Последние обращения",
+  db_actions: "Задачи", db_feed: "Обращения",
   db_feed_help: "Задайте уточняющий вопрос: автор увидит его, введя свой код обращения (называть себя не нужно).",
   db_heat: "Откуда приходят обращения", db_heat_sub: "(А–Я, не рейтинг)", db_sev: "тяжесть {n}/5",
   db_n_patient: "пациенты: {n}", db_n_staff: "сотрудники: {n}", db_n_near: "почти ошибки: {n}", db_linked: "связано: видят обе стороны",
@@ -170,6 +173,9 @@ Object.assign(I18N.ru, {
   cat_equipment: "Оборудование / условия", cat_behavior: "Поведение персонала", cat_communication: "Информация / общение",
   cat_pain: "Обезболивание", cat_privacy: "Конфиденциальность", cat_billing: "Оплата", cat_food: "Питание / комфорт", cat_other: "Другое",
   tb_morning: "утро", tb_afternoon: "день", tb_night: "ночь",
+  db_no_reports: "Обращений пока нет. Отсканируйте QR-код, чтобы отправить тестовое.",
+  db_show_all: "Показать все ({n})",
+  db_show_less: "Свернуть",
 });
 
 Object.assign(I18N.en, {
@@ -223,7 +229,7 @@ Object.assign(I18N.en, {
   db_radar_row: "{n} reports this week vs about {usual} usual.",
   db_clusters: "Recurring problems", db_clusters_sub: "(patients and staff combined)",
   db_clusters_help: "A problem seen by both patients and staff is marked \"linked\". Staff reports appear only as neutral summaries.",
-  db_actions: "Action tracker", db_feed: "Latest reports",
+  db_actions: "Action tracker", db_feed: "Reports",
   db_feed_help: "Ask a follow-up question: the reporter sees it by entering their case code (no identity needed).",
   db_heat: "Where reports come from", db_heat_sub: "(A–Z, not a ranking)", db_sev: "severity {n}/5",
   db_n_patient: "{n} patient", db_n_staff: "{n} staff", db_n_near: "{n} near-miss", db_linked: "linked: seen by both",
@@ -251,4 +257,7 @@ Object.assign(I18N.en, {
   cat_pain: "Pain management", cat_privacy: "Privacy / confidentiality", cat_billing: "Billing / payments",
   cat_food: "Food / comfort", cat_other: "Other",
   tb_morning: "morning", tb_afternoon: "afternoon", tb_night: "night",
+  db_no_reports: "No reports yet. Scan a QR code to send a test one.",
+  db_show_all: "Show all ({n})",
+  db_show_less: "Show less",
 });

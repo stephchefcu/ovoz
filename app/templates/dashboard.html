@@ -12,12 +12,13 @@
   </div>
   <div class="small muted" id="privnote" style="margin:4px 0 12px"></div>
 
-  <div class="grid kpis" id="kpis"></div>
-
-  <div id="urgentbox" class="card hidden" style="margin-top:14px;border-color:#f2b8b8;background:#fff8f8">
-    <h2 data-i18n="db_urgent">Urgent patient reports — review now</h2>
-    <div id="urgent"></div>
+  <div class="card" id="reports">
+    <h2 data-i18n="db_feed">Latest reports</h2>
+    <div id="feed"></div>
+    <button class="ghost small hidden" id="feedmore" onclick="FEED_ALL = !FEED_ALL; render(DATA)"></button>
   </div>
+
+  <div class="grid kpis" id="kpis" style="margin-top:14px"></div>
 
   <div id="radarbox" class="card hidden" style="margin-top:14px">
     <h2 data-i18n="db_radar">Early-warning radar</h2>
@@ -32,10 +33,6 @@
       <div class="card">
         <h2 data-i18n="db_actions">Action tracker</h2>
         <div id="actions"></div>
-      </div>
-      <div class="card">
-        <h2 data-i18n="db_feed">Latest reports</h2>
-        <div id="feed"></div>
       </div>
     </div>
     <div>
@@ -61,6 +58,8 @@
   const theme = c => tr("th_", c.theme, c.theme_name);
   const cat = (key, fallback) => tr("cat_", key, fallback);
   let DATA = null;
+  let FEED_ALL = false;  // the 5 newest reports, or all of them
+  const FEED_FIRST = 5;
 
   async function load() {
     const r = await fetch("/api/dashboard");
@@ -80,9 +79,6 @@
       [t("db_k_urgent"), k.urgent], [t("db_k_reports"), k.reports], [t("db_k_ps"), k.patient + " / " + k.staff],
     ].map(([a, b, c]) => `<div class="kpi ${c || ""}"><b>${b}</b><span>${esc(a)}</span></div>`).join("");
 
-    $("urgentbox").classList.toggle("hidden", !d.urgent.length);
-    $("urgent").innerHTML = d.urgent.map(u => `<div class="quote"><b>${esc(u.label)}</b> · ${esc(cat(u.category_key, u.category))} · ${esc(u.day)}<br>${esc(u.text)}
-      <div><button class="small" onclick="askModal(${u.id})">${esc(t("db_ask"))}</button></div></div>`).join("");
 
     $("radarbox").classList.toggle("hidden", !d.radar.length);
     $("radar").innerHTML = d.radar.map(r => `<div class="note warn"><b>${esc(r.label)}</b>: ${esc(tf("db_radar_row", { n: r.this_week, usual: r.usual }))}</div>`).join("");
@@ -112,14 +108,17 @@
           <td><span class="spark">${h.trend.map(v => `<i style="height:${Math.max(2, Math.round(22 * v / mx))}px" title="${v}"></i>`).join("")}</span></td></tr>`;
       }).join("") + "</tbody></table>";
 
-    $("feed").innerHTML = d.feed.map(f => `
-      <div class="quote ${f.source === "staff" ? "staff" : ""}">
+    const feed = FEED_ALL ? d.feed : d.feed.slice(0, FEED_FIRST);
+    $("feed").innerHTML = d.feed.length ? feed.map(f => `
+      <div class="quote ${f.source === "staff" ? "staff" : ""} ${f.urgent ? "urgent" : ""}">
         <span class="badge ${f.source === "staff" ? "s" : "p"}">${esc(t(f.source === "staff" ? "db_src_staff" : "db_src_patient"))}</span>
         ${f.urgent ? `<span class="badge urgent">${esc(t("db_urgent_b"))}</span>` : ""} ${sevBadge(f.severity)}
         <span class="small muted">${esc(f.label)} · ${esc(cat(f.category_key, f.category))} · ${esc(f.day)}${f.bucket ? " · " + esc(tr("tb_", f.bucket, f.bucket)) : ""}</span><br>
         ${esc(f.text)}
         <div><button class="ghost small" onclick="askModal(${f.id})">${esc(t("db_ask"))}</button></div>
-      </div>`).join("");
+      </div>`).join("") : `<p class="muted">${esc(t("db_no_reports"))}</p>`;
+    $("feedmore").classList.toggle("hidden", d.feed.length <= FEED_FIRST);
+    $("feedmore").textContent = FEED_ALL ? t("db_show_less") : tf("db_show_all", { n: d.feed.length });
 
     $("actions").innerHTML = d.actions.length ? `<table><thead><tr><th>${esc(t("db_a_action"))}</th><th>${esc(t("db_a_owner"))}</th><th>${esc(t("db_a_due"))}</th><th></th></tr></thead><tbody>` +
       d.actions.map(a => `<tr><td>${esc(a.title)}<div class="small muted">${esc(a.scope_unit)}${a.cause ? " · " + esc(a.cause) : ""}</div></td>
