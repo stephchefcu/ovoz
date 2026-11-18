@@ -90,15 +90,21 @@ Code: https://github.com/stephchefcu/ovoz (public). Keys live only in `.env`: ne
 
 ## Logo
 
-One logo: **Mark (light)**, a navy ring with white inside and five blue bars. Colours: blue `#2563eb`, navy `#0f172a`,
-white. Use it everywhere, on light or dark backgrounds (the white inside keeps it readable on dark).
+**The logo is the name "ovoz"**, where the second "o" has five blue bars inside (a voice). Navy letters
+`#0f172a`, blue bars `#2563eb`, rounded lines. On dark backgrounds use the white version (white letters, light-blue bars).
 
-- `brand-kit/ovoz-logo.png`: the logo on white (1024 px), also the Telegram bot picture (@BotFather → `/setuserpic`)
-- `brand-kit/ovoz-logo-transparent.png`: for slides and coloured backgrounds
-- `brand-kit/ovoz-logo-small.png`: three-bar version, only for tiny sizes (browser tab, 16–32 px)
-- `brand-kit/svg/`: the same as vectors; `brand-kit/ovoz-logos.zip`: everything in one file
+**The icon** is that second "o" on its own (navy ring, white inside, blue bars). Use it only where a square is needed:
+Telegram picture, app icon, browser tab.
 
-The slanted "ovoz" wordmark letters: use the designer's SVG (in `#2563eb`).
+- `brand-kit/ovoz-logo.png`: the logo on white (2048 px wide), for documents and slides
+- `brand-kit/ovoz-logo-transparent.png`: the logo with no background, for light coloured backgrounds
+- `brand-kit/ovoz-logo-white.png`: the white logo with no background, for dark backgrounds
+- `brand-kit/ovoz-icon.png`: the icon on white (1024 px), also the Telegram bot picture (@BotFather → `/setuserpic`)
+- `brand-kit/ovoz-icon-transparent.png`: the icon with no background
+- `brand-kit/ovoz-icon-small.png`: three-bar icon, only for tiny sizes (browser tab, 16–32 px)
+- `brand-kit/ovoz-logo-overview.png`: all of them on one page
+- `brand-kit/svg/`: the same as vectors (`wordmark.svg`, `wordmark-white.svg`, `mark.svg`, `mark-small.svg`);
+  `brand-kit/ovoz-logos.zip`: everything in one file
 
 ## 2-minute demo
 
