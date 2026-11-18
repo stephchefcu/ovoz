@@ -10,7 +10,6 @@
     <div class="eyebrow">{{ clinic.name }} ·
       <span id="wardname" data-name-en="{{ ward.name }}" data-name-uz="{{ ward.name_uz or '' }}" data-name-ru="{{ ward.name_ru or '' }}">{{ ward.name }}</span></div>
     <h1 data-i18n="p_title"></h1>
-    <div class="trust">{{ icon("lock", 20) }}<span data-i18n="trust_patient"></span></div>
 
     <button type="button" class="help" id="helpbtn">{{ icon("alert") }}<span data-i18n="help_btn"></span></button>
     <div id="helpbox" class="helpbox hidden">
@@ -45,14 +44,6 @@
       <button id="send" class="block" style="margin-top:14px" data-i18n="submit"></button>
     </div>
 
-    <details class="privacy">
-      <summary data-i18n="privacy_how"></summary>
-      <ul>
-        <li data-i18n="priv_no"></li>
-        <li data-i18n="priv_audio"></li>
-        <li data-i18n="priv_yes"></li>
-      </ul>
-    </details>
     {% if tg %}<p class="small" style="margin-top:14px"><a href="{{ tg }}" data-i18n="tg_open"></a></p>{% endif %}
   </div>
 
@@ -67,8 +58,9 @@
     <p data-i18n="done_code"></p>
     <div class="codebox"><div class="code" id="code"></div>
       <button class="ghost" id="copy" aria-label="Copy">{{ icon("copy", 20) }}</button></div>
-    <p class="muted small"><span data-i18n="done_follow"></span> <a href="/case">/case</a></p>
-    <button class="ghost block" id="again" data-i18n="again"></button>
+    <p class="muted small" data-i18n="done_follow"></p>
+    <a class="btn ghost block" href="/case" data-i18n="done_check"></a>
+    <button class="ghost block" id="again" data-i18n="again" style="margin-top:8px;border:0;background:none"></button>
   </div>
 </div>
 {% endblock %}
@@ -126,13 +118,12 @@
       box: $("review"), hide: [$("form")], masked: p.masked, flags: p.flags,
       rows: () => {
         const rows = [
-          [t("rv_clinic"), CLINIC_NAME],
           [t("p_ward"), $("wardname").textContent],
           [t("rv_role"), t(reporter === "relative" ? "role_relative" : "role_patient")],
         ];
         if (urgent) rows.push(["", t("rv_urgent")]);
-        else rows.push([t("rv_rating"), rating ? t(FACE[rating]) : t("rv_none")]);
-        rows.push([t("rv_date"), partOfDay(p)], [t("rv_lang"), langName()]);
+        else if (rating) rows.push([t("rv_rating"), t(FACE[rating])]);
+        rows.push([t("rv_date"), partOfDay(p)]);
         return rows;
       },
       onAgree: async () => {

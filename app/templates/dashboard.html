@@ -10,7 +10,7 @@
     <div><h1 style="margin-bottom:2px">{{ clinic.name }}</h1><div class="small muted"><span data-i18n="nav_dashboard">Dashboard</span> · <span data-i18n="clinic_code_l">clinic code</span> <code>{{ clinic.slug }}</code></div></div>
     <div class="small muted" id="mode"></div>
   </div>
-  <div class="note info small" id="privnote"></div>
+  <div class="small muted" id="privnote" style="margin:4px 0 12px"></div>
 
   <div class="grid kpis" id="kpis"></div>
 
@@ -21,12 +21,10 @@
 
   <div id="radarbox" class="card hidden" style="margin-top:14px">
     <h2 data-i18n="db_radar">Early-warning radar</h2>
-    <p class="small muted" data-i18n="db_radar_help">These places had more reports than usual this week, so they may need a look before something serious happens.</p>
     <div id="radar"></div>
   </div>
 
   <h2 style="margin-top:20px"><span data-i18n="db_clusters">Recurring problems</span> <span class="small muted" data-i18n="db_clusters_sub">(patients and staff combined)</span></h2>
-  <p class="small muted" data-i18n="db_clusters_help">A problem seen by both patients and staff is marked "linked". Staff reports appear only as neutral summaries.</p>
   <div id="clusters"></div>
 
   <div class="grid two" style="margin-top:14px">
@@ -37,7 +35,6 @@
       </div>
       <div class="card">
         <h2 data-i18n="db_feed">Latest reports</h2>
-        <p class="small muted" data-i18n="db_feed_help">Ask a follow-up question: the reporter sees it by entering their case code (no identity needed).</p>
         <div id="feed"></div>
       </div>
     </div>
@@ -74,15 +71,14 @@
 
   function render(d) {
     $("mode").textContent = t("db_ai") + " " + (d.ai_mode === "llm" ? t("db_ai_llm") : t("db_ai_rules"));
-    $("privnote").textContent = tf("db_privacy", { k: d.privacy.k_min, hidden: d.kpi.hidden_small_groups, days: d.privacy.window_days });
+    $("privnote").textContent = tf("db_privacy", { k: d.privacy.k_min, days: d.privacy.window_days });
 
     const k = d.kpi;
     // Headline = problems fixed. Report counts are context: more reports usually means a safer culture.
     $("kpis").innerHTML = [
       [t("db_k_fixed"), k.fixed, "head"], [t("db_k_open"), k.open_actions], [t("db_k_linked"), k.linked_clusters],
       [t("db_k_urgent"), k.urgent], [t("db_k_reports"), k.reports], [t("db_k_ps"), k.patient + " / " + k.staff],
-    ].map(([a, b, c]) => `<div class="kpi ${c || ""}"><b>${b}</b><span>${esc(a)}</span></div>`).join("") +
-      `<div class="small muted" style="grid-column:1/-1">${esc(t("db_k_note"))}</div>`;
+    ].map(([a, b, c]) => `<div class="kpi ${c || ""}"><b>${b}</b><span>${esc(a)}</span></div>`).join("");
 
     $("urgentbox").classList.toggle("hidden", !d.urgent.length);
     $("urgent").innerHTML = d.urgent.map(u => `<div class="quote"><b>${esc(u.label)}</b> · ${esc(cat(u.category_key, u.category))} · ${esc(u.day)}<br>${esc(u.text)}

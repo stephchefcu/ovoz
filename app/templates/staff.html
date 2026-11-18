@@ -9,8 +9,6 @@
   <div id="form">
     <div class="eyebrow">{{ clinic.name }}</div>
     <h1 data-i18n="s_title"></h1>
-    <div class="trust">{{ icon("lock", 20) }}<span data-i18n="trust_staff"></span></div>
-    <p class="muted" data-i18n="staff_prompt"></p>
 
     <div class="card">
       <div class="step"><span class="n">1</span><label for="ward" style="margin:0" data-i18n="p_ward"></label></div>
@@ -27,15 +25,7 @@
       <button id="send" class="block" style="margin-top:14px" data-i18n="submit"></button>
     </div>
 
-    <div class="note warn small" data-i18n="staff_emergency"></div>
-    <details class="privacy">
-      <summary data-i18n="privacy_how"></summary>
-      <ul>
-        <li data-i18n="priv_no"></li>
-        <li data-i18n="priv_audio"></li>
-        <li data-i18n="priv_yes"></li>
-      </ul>
-    </details>
+    <p class="small muted" data-i18n="staff_emergency"></p>
     {% if tg %}<p class="small" style="margin-top:14px"><a href="{{ tg }}" data-i18n="tg_open"></a></p>{% endif %}
   </div>
 
@@ -49,8 +39,9 @@
     <p data-i18n="done_code"></p>
     <div class="codebox"><div class="code" id="code"></div>
       <button class="ghost" id="copy" aria-label="Copy">{{ icon("copy", 20) }}</button></div>
-    <p class="muted small"><span data-i18n="done_follow"></span> <a href="/case">/case</a></p>
-    <button class="ghost block" id="again" data-i18n="again"></button>
+    <p class="muted small" data-i18n="done_follow"></p>
+    <a class="btn ghost block" href="/case" data-i18n="done_check"></a>
+    <button class="ghost block" id="again" data-i18n="again" style="margin-top:8px;border:0;background:none"></button>
   </div>
 </div>
 {% endblock %}
@@ -81,11 +72,9 @@
     showReview({
       box: $("review"), hide: [$("form")], masked: p.masked, flags: p.flags,
       rows: () => [
-        [t("rv_clinic"), CLINIC_NAME],
         [t("p_ward"), selText("ward")],
         [t("rv_role"), t("role_staff")],
         [t("rv_date"), partOfDay(p) + " (" + t("rv_staffdate") + ")"],
-        [t("rv_lang"), langName()],
       ],
       onAgree: async () => {
         const r = await fetch("/api/report", { method: "POST", headers: { "Content-Type": "application/json" },

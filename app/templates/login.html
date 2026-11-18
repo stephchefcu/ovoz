@@ -6,7 +6,6 @@
 {% block content %}
 <div class="wrap" style="max-width:420px">
   <h1 data-i18n="li_title">Clinic login</h1>
-  <p class="muted" data-i18n="li_sub">Only authorised clinic staff (director, quality officer) can open the dashboard.</p>
   <form class="card" method="post" action="/login">
     <label for="clinic" data-i18n="clinic_code">Clinic code</label>
     <input id="clinic" name="clinic" value="{{ slug or '' }}" autocapitalize="off" autocomplete="username" required

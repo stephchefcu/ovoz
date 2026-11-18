@@ -6,12 +6,9 @@
 {% endblock %}
 {% block content %}
 <div class="wrap">
-  <div class="eyebrow">Ovoz</div>
   <h1>{{ clinic.name }}</h1>
-  <div class="trust">{{ icon("lock", 20) }}<span data-i18n="trust_patient"></span></div>
 
   <h2 style="margin-top:20px" data-i18n="cl_patients"></h2>
-  <p class="small muted" data-i18n="cl_pick"></p>
   {% for w in wards %}
     <a class="listbtn" href="/r/{{ w.code }}">
       <span data-name-en="{{ w.name }}" data-name-uz="{{ w.name_uz or '' }}" data-name-ru="{{ w.name_ru or '' }}">{{ w.name }}</span>
@@ -23,7 +20,7 @@
   <h2 style="margin-top:22px" data-i18n="cl_staff"></h2>
   <a class="listbtn" href="/c/{{ clinic.slug }}/staff"><span data-i18n="cl_staff_btn"></span>{{ icon("chevron", 20) }}</a>
 
-  <h2 style="margin-top:22px" data-i18n="cl_more"></h2>
+  <div style="margin-top:22px"></div>
   {% if tg %}<a class="listbtn" href="{{ tg }}"><span data-i18n="tg_open"></span>{{ icon("send", 20) }}</a>{% endif %}
   <a class="listbtn" href="/case"><span data-i18n="cl_case"></span>{{ icon("search", 20) }}</a>
 

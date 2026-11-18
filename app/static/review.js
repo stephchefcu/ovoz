@@ -29,11 +29,10 @@ function renderReview() {
   const rows = o.rows();
   o.box.innerHTML = `
     <h2>${t("rv_title")}</h2>
-    <label>${t("rv_msg")}</label>
     <div class="masked">${reviewEsc(o.masked)}</div>
     ${(o.flags || []).length ? `<div class="risky">${t("risky_title")}<ul>${o.flags.map(f => `<li>${reviewEsc(f)}</li>`).join("")}</ul>${t("risky_hint")}</div>` : ""}
-    ${rows.length ? `<table class="rv">${rows.map(([k, v]) => `<tr><th>${reviewEsc(k)}</th><td>${reviewEsc(v)}</td></tr>`).join("")}</table>` : ""}
-    <div class="note info small">${t("rv_not")}<br>${t("rv_who")}</div>
+    ${rows.length ? `<p class="small muted rv-meta">${rows.map(([k, v]) => reviewEsc(v)).join(" · ")}</p>` : ""}
+    <p class="small rv-not">${t("rv_not")}</p>
     <label class="agree"><input type="checkbox" id="rv_ok">
       <span>${t("rv_agree_pre")} <a href="${typeof PRIVACY_URL !== "undefined" ? PRIVACY_URL : "/privacy"}" target="_blank" rel="noopener">${t("rv_terms")}</a>${t("rv_agree_post")}</span></label>
     <div id="rv_err" class="note bad hidden"></div>
