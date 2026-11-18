@@ -242,3 +242,54 @@ ul.ticks .ico { color: var(--brand); margin-top: 2px; }
 @media (max-width: 600px) { .hero .brand-title img { height: 44px; } }
 .qr .qr-brand { display: block; line-height: 0; margin-bottom: 8px; }
 .qr .qr-brand img { height: 22px; width: auto; }
+
+/* ---- home page ---- */
+.home { max-width: 1080px; margin: 0 auto; padding: 0 16px 40px; }
+.home section { margin: 0 0 40px; }
+.home-hero { display: grid; gap: 32px; grid-template-columns: 1fr; align-items: center; padding: 36px 0 8px; }
+@media (min-width: 880px) { .home-hero { grid-template-columns: 1.1fr .9fr; gap: 56px; padding: 64px 0 16px; } }
+.home-hero h1 { font-size: clamp(2.1rem, 5vw, 3.2rem); line-height: 1.08; letter-spacing: -.025em; margin: 0 0 16px; }
+.home-hero h1 span { color: var(--brand); }
+.home-hero .lead { font-size: 1.15rem; color: #334155; max-width: 34em; margin: 0 0 24px; }
+.home-cta { gap: 12px; }
+.home-cta .btn { padding: 14px 22px; }
+.home-facts { list-style: none; padding: 0; margin: 22px 0 0; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.home-facts li { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: .93rem; font-weight: 600; }
+.home-facts .ico { color: var(--brand); }
+
+.home-demo { position: relative; }
+.demo-card { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 20px 22px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, .10), 0 2px 6px rgba(15, 23, 42, .05); }
+.demo-head { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 700; color: var(--muted); }
+.demo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
+.demo-wave { display: flex; align-items: center; gap: 4px; height: 44px; margin: 14px 0 12px; }
+.demo-wave i { display: block; width: 5px; border-radius: 3px; background: var(--brand); opacity: .85; }
+.demo-text { font-size: 1.02rem; line-height: 1.5; margin: 0 0 14px; }
+.demo-text mark { background: var(--brand-soft); color: var(--brand-dark); border-radius: 6px; padding: 1px 5px; font-weight: 700; }
+.demo-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.demo-tags span { font-size: .8rem; font-weight: 700; color: var(--brand-dark); background: var(--brand-soft);
+  border: 1px solid var(--brand-line); border-radius: 999px; padding: 3px 10px; }
+.demo-code { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: .88rem; color: var(--muted); }
+.demo-code b { color: var(--ink); letter-spacing: .06em; }
+.demo-link { display: inline-flex; align-items: center; gap: 8px; margin: 14px 0 0 18px; padding: 9px 14px;
+  background: var(--ink); color: #fff; border-radius: 12px; font-size: .88rem; font-weight: 600; }
+.demo-link .ico { color: #93c5fd; }
+
+.home-steps h2, .home-paths h2 { font-size: 1.35rem; }
+.home-steps ol { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .home-steps ol { grid-template-columns: repeat(3, 1fr); } }
+.home-steps li { display: flex; gap: 14px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+.home-steps .num { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 800; }
+.home-steps p { margin: 4px 0 0; color: var(--muted); font-size: .93rem; }
+
+.home-paths { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .home-paths { grid-template-columns: 1fr 1fr; } }
+.home-paths .card { margin: 0; display: flex; flex-direction: column; }
+.home-paths h2 { display: flex; align-items: center; gap: 10px; font-size: 1.15rem; }
+.home-paths h2 .ico { color: var(--brand); }
+.home-paths .row { margin-top: auto; gap: 14px; }
+.topbar .nav a.btn.small { color: #fff; min-height: 34px; }
+.topbar .nav a.btn.small:hover { color: #fff; }
+@media (max-width: 480px) { .home-cta .btn { width: 100%; } .demo-link { margin-left: 0; } }
+.wrap.home-foot { max-width: 1080px; margin-top: 0 !important; }

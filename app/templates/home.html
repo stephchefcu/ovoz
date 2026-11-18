@@ -2,47 +2,74 @@
 {% from "_icons.html" import icon %}
 {% block nav %}
   {% if is_clinic %}<a href="/dashboard">Dashboard</a><a href="/logout">Log out</a>
-  {% else %}<a href="/pricing">Pricing</a><a href="/login">Clinic login</a><a href="/signup">Sign up</a>{% endif %}
+  {% else %}<a href="/pricing">Pricing</a><a href="/login">Clinic login</a><a class="btn small" href="/signup">Sign up</a>{% endif %}
 {% endblock %}
+{% block footclass %}home-foot{% endblock %}
 {% block content %}
-<div class="wrap">
-  <div class="hero">
-    <h1 class="brand-title"><img src="/static/brand/wordmark.svg?v={{ V }}" alt="Ovoz" width="200" height="52"></h1>
-    <p><b>Clinic safety and feedback, by voice.</b></p>
-    <p class="muted">Patients, relatives and staff speak up anonymously, by voice or text, in Uzbek, Russian or English,
-      on the web or in Telegram. Each clinic sees the connected picture and fixes the causes.</p>
-  </div>
+<div class="home">
 
-  <div class="card">
-    <a class="cardlink" href="/case">
-      {{ icon("user", 26) }}
-      <div><h2 style="margin-bottom:4px">Patients, relatives and staff</h2>
-        <p class="small muted" style="margin:0">Scan the Ovoz QR code in your clinic's department. Already reported?
-          <span style="color:var(--brand-dark);font-weight:600">Follow up with your case code</span>.</p></div>
-    </a>
-    {% if bot %}<p class="small" style="margin:12px 0 0 40px">Telegram: <a href="https://t.me/{{ bot }}">@{{ bot }}</a></p>{% endif %}
-  </div>
-
-  <div class="card">
-    <div class="cardlink">
-      {{ icon("building", 26) }}
-      <div style="flex:1"><h2 style="margin-bottom:4px">Clinics</h2>
-        <p class="small muted">Sign up, add your departments, print your QR codes. Only your clinic sees your reports.</p>
-        <p class="small muted">Free for small clinics. Larger clinics get the full plan free for 60 days.
-          <a href="/pricing">See pricing</a></p>
-        <div class="row"><a class="btn" href="/signup">Sign up your clinic</a><a class="btn ghost" href="/login">Log in</a></div></div>
+  <section class="home-hero">
+    <div class="home-hero-text">
+      <h1>Clinic safety and feedback, <span>by voice.</span></h1>
+      <p class="lead">Patients, relatives and staff speak up anonymously, by voice or text. Each clinic sees the
+        connected picture and fixes the causes.</p>
+      <div class="row home-cta">
+        {% if is_clinic %}<a class="btn" href="/dashboard">Open your dashboard</a>
+        {% else %}<a class="btn" href="/signup">Sign up your clinic</a>{% endif %}
+        {% if demo %}<a class="btn ghost" href="/c/demo">Try the demo clinic</a>{% endif %}
+      </div>
+      <ul class="home-facts">
+        <li>{{ icon("lock", 18) }}Anonymous: no names, phones or audio kept</li>
+        <li>{{ icon("mic", 18) }}Uzbek, Russian, English</li>
+        <li>{{ icon("send", 18) }}On the web and in Telegram</li>
+      </ul>
     </div>
-  </div>
 
-  {% if demo %}
-  <div class="card soft">
-    <div class="cardlink">
-      {{ icon("shield", 26) }}
-      <div><h2 style="margin-bottom:4px">Try the demo clinic</h2>
-        <p class="small muted">Invented data. Clinic code <code>demo</code>.</p>
-        <a class="btn ghost" href="/c/demo">Open the demo clinic</a></div>
+    <div class="home-demo" aria-hidden="true">
+      <div class="demo-card">
+        <div class="demo-head"><span class="demo-dot"></span>Surgery ward A · patient</div>
+        <div class="demo-wave">{% for h in [10, 18, 28, 16, 34, 22, 12, 26, 38, 20, 14, 30, 18, 10, 24, 16] %}<i style="height:{{ h }}px"></i>{% endfor %}</div>
+        <p class="demo-text">“Nobody came for two hours after I pressed the call button. Nurse <mark>[NAME]</mark> said
+          the night shift is short.”</p>
+        <div class="demo-tags"><span>Names hidden</span><span>Care delays</span></div>
+        <div class="demo-code">Case code <b>K7QM-4TXH</b></div>
+      </div>
+      <div class="demo-link">{{ icon("check", 18) }}Linked with 2 staff reports from the same ward</div>
     </div>
-  </div>
-  {% endif %}
+  </section>
+
+  <section class="home-steps">
+    <h2>How it works</h2>
+    <ol>
+      <li><span class="num">1</span><div><b>Scan the QR code</b><p>Every department has its own poster. No app and no
+        sign-in.</p></div></li>
+      <li><span class="num">2</span><div><b>Speak or type</b><p>Names and numbers are hidden before anything is saved.
+        People see exactly what is stored.</p></div></li>
+      <li><span class="num">3</span><div><b>The clinic fixes the cause</b><p>Patient and staff reports about the same
+        place are linked. The reporter can follow up with their case code.</p></div></li>
+    </ol>
+  </section>
+
+  <section class="home-paths">
+    <div class="card">
+      <h2>{{ icon("user", 22) }}Already reported?</h2>
+      <p class="muted">Use your case code to see the clinic's answer or add something.</p>
+      <div class="row">
+        <a class="btn ghost" href="/case">Follow up with your code</a>
+        {% if bot %}<a class="small" href="https://t.me/{{ bot }}">Telegram: @{{ bot }}</a>{% endif %}
+      </div>
+    </div>
+    <div class="card">
+      <h2>{{ icon("building", 22) }}For clinics</h2>
+      <p class="muted">Add your departments and print your QR codes. Only your clinic sees your reports. Free for small
+        clinics; larger clinics get the full plan free for 60 days.</p>
+      <div class="row">
+        {% if is_clinic %}<a class="btn ghost" href="/dashboard">Dashboard</a>
+        {% else %}<a class="btn ghost" href="/login">Clinic login</a>{% endif %}
+        <a class="small" href="/pricing">See pricing</a>
+      </div>
+    </div>
+  </section>
+
 </div>
 {% endblock %}
