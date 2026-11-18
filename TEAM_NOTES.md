@@ -3,6 +3,7 @@
 *Ovoz* ("voice") lets patients, relatives and staff report problems in a clinic **anonymously, by voice or text**
 (Uzbek, Russian, English), on the **web** or in **Telegram**. AI hides personal details, sorts reports, links what
 patients and staff say about the same ward, and helps the clinic fix causes. Hackathon problems #7 and #8.
+Every page is in Uzbek, Russian and English.
 
 ## Links
 
@@ -14,11 +15,12 @@ patients and staff say about the same ward, and helps the clinic fix causes. Hac
 
 | What | Path (add to the link) |
 |---|---|
-| Home | `/` |
+| Home (add `?lang=ru` or `?lang=en` to open it in that language) | `/` |
 | Demo clinic page | `/c/demo` |
 | Patient form (Surgery ward A, what the QR opens) | `/r/PDSnB8oz` |
 | Staff form | `/c/demo/staff` |
 | Follow up a report (demo code with a clinic question: `DEMO-2345`) | `/case` |
+| "You said, we did" board for Surgery ward A (for a screen in the ward) | `/board/PDSnB8oz` |
 | Clinic login → dashboard, settings, QR codes | `/login` |
 | Sign up a new clinic | `/signup` |
 | Terms and privacy | `/privacy?c=demo` |
@@ -29,6 +31,24 @@ patients and staff say about the same ward, and helps the clinic fix causes. Hac
 
 **Clinic login:** clinic code `demo`. The password is `CLINIC_PASSWORD` in `.env` on the laptop that runs Ovoz
 (never in the repo); ask whoever runs it. Or sign up your own test clinic at `/signup`.
+
+## The three codes
+
+- **Case code** (e.g. `K7QM-4TXH`): the reporter gets it after sending. It is their only link to the report: at `/case`
+  they see the clinic's questions and answer, still anonymous. Only a scrambled form is stored. Demo: `DEMO-2345`.
+- **Clinic code** (e.g. `demo`): the clinic's short name, chosen at sign-up. Used to log in and in the Telegram bot.
+- **Department code** (e.g. `PDSnB8oz`): random, inside each QR code (`/r/<code>`). Nobody types it; random so links
+  cannot be guessed.
+
+## Languages
+
+- Every page has a **UZ / RU / EN** switch. Uzbek is the default; the browser remembers the choice, and `?lang=ru`
+  in a link opens that language. The Telegram bot asks for the language at the start.
+- On the dashboard the labels, problem types and root-cause help switch too (the AI model is asked to answer in that
+  language). What people wrote stays as written: reports, staff summaries, department names in lists, and actions
+  the clinic types.
+- The text lives in `app/static/i18n.js` (patient, staff, home pages), `app/static/i18n-clinic.js` (clinic pages and the
+  board) and `app/ai.py` (root-cause suggestions). The Uzbek and Russian wording is a draft: have native speakers check it.
 
 ## The flows
 
@@ -84,8 +104,19 @@ Three terminal tabs in the project folder:
 New tunnel link → reprint QR codes from `/qr`. Keep the laptop awake (`caffeinate -d`).
 Tests: `python tests/smoke_test.py` and `python tests/telegram_bot_test.py` (every line should say PASS).
 
-**Get the latest code** (after a pull request is merged): `git pull origin main`, then stop and start the web app
-and the bot (Ctrl+C, then the same command). The tunnel can keep running, so the link stays the same.
+**Get the latest code** (after a pull request is merged): in a free tab run `git pull origin main`, then restart the
+web app in its own tab (Ctrl+C, wait for the `ovoz %` line, then the same command). Restart the bot only if its code
+changed. The tunnel can keep running, so the link stays the same. Tab titles show which program runs where; never press
+Ctrl+C in the cloudflared tab.
+
+**If something won't start:**
+- Web app says `address already in use`, or the bot keeps printing `Conflict … only one bot instance`: an old copy is
+  still running (for example from a closed window). Stop all old copies, check nothing is left, then start each again:
+  `pkill -f "uvicorn app.main:app"; pkill -f "app.telegram_bot"` and `pgrep -fl "uvicorn|telegram_bot"` (prints nothing).
+- `Conflict` still there: the bot is running on another computer with the same token. Only one copy may run.
+- `git pull` refuses because of local changes: `git stash push -u -m "laptop changes"`, then pull again (the changes
+  are kept in the stash).
+- Starting everything over (Cmd+Q) also stops the tunnel: the link changes, so update it here and reprint the QR codes.
 Code: https://github.com/stephchefcu/ovoz (public). Keys live only in `.env`: never commit it.
 
 ## Logo
@@ -113,3 +144,4 @@ Telegram picture, app icon, browser tab.
 3. Staff side in Telegram: one voice note, AI decides it's a near-miss.
 4. Dashboard: the same ward appears as a **linked** problem (patients + staff), root-cause help, create an action.
 5. Mark it done: it shows on the "You said, we did" board; reply to the reporter via the case code.
+6. Switch the dashboard to **RU** or **UZ**: the whole page and the root-cause help change language.
