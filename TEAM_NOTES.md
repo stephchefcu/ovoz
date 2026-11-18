@@ -6,7 +6,7 @@ patients and staff say about the same ward, and helps the clinic fix causes. Hac
 
 ## Links
 
-- **Live demo:** **https://mail-fit-illustrations-numbers.trycloudflare.com** (changes whenever the tunnel restarts)
+- **Live demo:** **https://hunting-grace-type-floor.trycloudflare.com** (changes whenever the tunnel restarts)
 - **Code (public):** **https://github.com/stephchefcu/ovoz**
 - **Telegram bot:** **https://t.me/ovoz_feedback_bot**
 
