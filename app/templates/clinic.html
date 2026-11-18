@@ -1,38 +1,33 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}{{ clinic.name }} · Ovoz{% endblock %}
 {% block nav %}
   <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
 {% endblock %}
 {% block content %}
 <div class="wrap">
+  <div class="eyebrow">Ovoz</div>
   <h1>{{ clinic.name }}</h1>
-  <p class="muted" data-i18n="p_sub"></p>
+  <div class="trust">{{ icon("lock", 20) }}<span data-i18n="trust_patient"></span></div>
 
-  <div class="card">
-    <h2 data-i18n="cl_patients"></h2>
-    <p class="small muted" data-i18n="cl_pick"></p>
-    <div class="row">
-      {% for w in wards %}<a class="btn ghost small" href="/r/{{ w.code }}"
-         data-name-en="{{ w.name }}" data-name-uz="{{ w.name_uz or '' }}" data-name-ru="{{ w.name_ru or '' }}">{{ w.name }}</a>{% endfor %}
-    </div>
-    {% if not wards %}<p class="note warn small" data-i18n="cl_none"></p>{% endif %}
-  </div>
+  <h2 style="margin-top:20px" data-i18n="cl_patients"></h2>
+  <p class="small muted" data-i18n="cl_pick"></p>
+  {% for w in wards %}
+    <a class="listbtn" href="/r/{{ w.code }}">
+      <span data-name-en="{{ w.name }}" data-name-uz="{{ w.name_uz or '' }}" data-name-ru="{{ w.name_ru or '' }}">{{ w.name }}</span>
+      {{ icon("chevron", 20) }}
+    </a>
+  {% endfor %}
+  {% if not wards %}<p class="note warn small" data-i18n="cl_none"></p>{% endif %}
 
-  <div class="card">
-    <h2 data-i18n="cl_staff"></h2>
-    <p class="small muted" data-i18n="s_sub"></p>
-    <a class="btn" href="/c/{{ clinic.slug }}/staff" data-i18n="cl_staff_btn"></a>
-  </div>
+  <h2 style="margin-top:22px" data-i18n="cl_staff"></h2>
+  <a class="listbtn" href="/c/{{ clinic.slug }}/staff"><span data-i18n="cl_staff_btn"></span>{{ icon("chevron", 20) }}</a>
 
-  {% if tg %}
-  <div class="card">
-    <h2>Telegram</h2>
-    <a class="btn ghost" href="{{ tg }}" data-i18n="tg_open"></a>
-  </div>
-  {% endif %}
+  <h2 style="margin-top:22px" data-i18n="cl_more"></h2>
+  {% if tg %}<a class="listbtn" href="{{ tg }}"><span data-i18n="tg_open"></span>{{ icon("send", 20) }}</a>{% endif %}
+  <a class="listbtn" href="/case"><span data-i18n="cl_case"></span>{{ icon("search", 20) }}</a>
 
-  <p class="small"><a href="/case" data-i18n="cl_case"></a></p>
-  {% if is_clinic %}<p class="small"><a href="/dashboard">Dashboard</a> · <a href="/settings">Settings</a> · <a href="/qr">QR codes</a></p>{% endif %}
+  {% if is_clinic %}<p class="small" style="margin-top:18px"><a href="/dashboard">Dashboard</a> · <a href="/settings">Settings</a> · <a href="/qr">QR codes</a></p>{% endif %}
 </div>
 {% endblock %}
 {% block scripts %}<script src="/static/i18n.js?v={{ V }}"></script>{% endblock %}

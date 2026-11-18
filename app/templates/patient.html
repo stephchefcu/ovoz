@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}{{ ward.name_uz or ward.name }} · Ovoz{% endblock %}
 {% block nav %}
   <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
@@ -9,32 +10,34 @@
     <div class="eyebrow">{{ clinic.name }} ·
       <span id="wardname" data-name-en="{{ ward.name }}" data-name-uz="{{ ward.name_uz or '' }}" data-name-ru="{{ ward.name_ru or '' }}">{{ ward.name }}</span></div>
     <h1 data-i18n="p_title"></h1>
-    <div class="trust">🔒 <span data-i18n="trust_patient"></span></div>
+    <div class="trust">{{ icon("lock", 20) }}<span data-i18n="trust_patient"></span></div>
 
-    <button type="button" class="help" id="helpbtn" data-i18n="help_btn"></button>
+    <button type="button" class="help" id="helpbtn">{{ icon("alert") }}<span data-i18n="help_btn"></span></button>
     <div id="helpbox" class="helpbox hidden">
       <b data-i18n="help_now"></b>
       <div class="small" style="margin-top:6px" data-i18n="help_also"></div>
     </div>
 
     <div class="card" style="margin-top:14px">
-      <div class="q" data-i18n="who_q"></div>
-      <div class="choices" id="who">
-        <button type="button" class="choice" data-v="patient"><span class="emo">🧑</span><span data-i18n="who_patient"></span></button>
-        <button type="button" class="choice" data-v="relative"><span class="emo">👪</span><span data-i18n="who_relative"></span></button>
-      </div>
-
-      <div id="rateblock">
-        <div class="q"><span data-i18n="how_q"></span> <span class="opt" data-i18n="optional"></span></div>
-        <div class="choices three" id="faces">
-          <button type="button" class="choice" data-v="5"><span class="emo">🙂</span><span data-i18n="f_good"></span></button>
-          <button type="button" class="choice" data-v="3"><span class="emo">😐</span><span data-i18n="f_ok"></span></button>
-          <button type="button" class="choice" data-v="1"><span class="emo">🙁</span><span data-i18n="f_bad"></span></button>
+      <div id="whoblock">
+        <div class="step"><span class="n">1</span><span data-i18n="who_q"></span></div>
+        <div class="choices" id="who">
+          <button type="button" class="choice" data-v="patient">{{ icon("user") }}<span data-i18n="who_patient"></span></button>
+          <button type="button" class="choice" data-v="relative">{{ icon("users") }}<span data-i18n="who_relative"></span></button>
         </div>
       </div>
 
-      <label for="text" class="q" data-i18n="p_what"></label>
-      <button type="button" class="rec" id="recbtn">🎤</button>
+      <div id="rateblock">
+        <div class="step"><span class="n">2</span><span data-i18n="how_q"></span> <span class="opt" data-i18n="optional"></span></div>
+        <div class="choices three" id="faces">
+          <button type="button" class="choice" data-v="5">{{ icon("good") }}<span data-i18n="f_good"></span></button>
+          <button type="button" class="choice" data-v="3">{{ icon("ok") }}<span data-i18n="f_ok"></span></button>
+          <button type="button" class="choice" data-v="1">{{ icon("bad") }}<span data-i18n="f_bad"></span></button>
+        </div>
+      </div>
+
+      <div class="step"><span class="n" id="n3">3</span><label for="text" style="margin:0" data-i18n="p_what"></label></div>
+      <button type="button" class="rec" id="recbtn">{{ icon("mic") }}<span class="lbl"></span></button>
       <div id="recstatus" class="note info hidden"></div>
       <textarea id="text" data-i18n-ph="p_ph" maxlength="3000" style="margin-top:10px"></textarea>
 
@@ -55,14 +58,15 @@
 
   <div id="review" class="card hidden"></div>
 
-  <div id="done" class="hidden">
-    <div class="done-mark">✅</div>
+  <div id="done" class="done hidden">
+    {{ icon("check", 56) }}
     <h1 data-i18n="done_title"></h1>
     <div id="urgentnote" class="note bad hidden" data-i18n="done_urgent"></div>
     <div id="seriousnote" class="note warn hidden" data-i18n="serious_note"></div>
     <div id="bribenote" class="note info hidden" data-i18n="bribe_note"></div>
     <p data-i18n="done_code"></p>
-    <div class="code" id="code"></div>
+    <div class="codebox"><div class="code" id="code"></div>
+      <button class="ghost" id="copy" aria-label="Copy">{{ icon("copy", 20) }}</button></div>
     <p class="muted small"><span data-i18n="done_follow"></span> <a href="/case">/case</a></p>
     <button class="ghost block" id="again" data-i18n="again"></button>
   </div>
@@ -81,24 +85,24 @@
   let who = null, rating = null, urgent = false;
   const $ = id => document.getElementById(id);
 
-  function pick(groupId, attr, setter) {
+  function pick(groupId, setter, canClear) {
     document.querySelectorAll(`#${groupId} .choice`).forEach(b => b.addEventListener("click", () => {
-      const already = b.classList.contains("on");
-      document.querySelectorAll(`#${groupId} .choice`).forEach(x => x.classList.remove("on"));
-      if (!(already && groupId === "faces")) b.classList.add("on");   // tap a face again to clear it
-      setter(already && groupId === "faces" ? null : b.dataset.v);
+      const clear = canClear && b.classList.contains("on");   // tap a face again to clear it
+      document.querySelectorAll(`#${groupId} .choice`).forEach(x => { x.classList.remove("on"); x.setAttribute("aria-pressed", "false"); });
+      if (!clear) { b.classList.add("on"); b.setAttribute("aria-pressed", "true"); }
+      setter(clear ? null : b.dataset.v);
     }));
   }
-  pick("who", "v", v => { who = v; $("error").classList.add("hidden"); });
-  pick("faces", "v", v => { rating = v ? +v : null; });
+  pick("who", v => { who = v; $("error").classList.add("hidden"); }, false);
+  pick("faces", v => { rating = v ? +v : null; }, true);
 
   // "Someone needs help NOW": what to do right now comes first; the report is then marked urgent.
   $("helpbtn").addEventListener("click", () => {
-    urgent = true;
+    urgent = true; rating = null;
     $("helpbox").classList.remove("hidden");
     $("helpbtn").classList.add("hidden");
     $("rateblock").classList.add("hidden");
-    rating = null;
+    $("n3").textContent = "2";
     $("text").focus();
   });
 
@@ -111,7 +115,7 @@
   $("send").addEventListener("click", async () => {
     const text = $("text").value.trim();
     $("error").classList.add("hidden");
-    if (!who && !urgent) return showError(t("need_who"));
+    if (!who && !urgent) { $("whoblock").scrollIntoView({ behavior: "smooth" }); return showError(t("need_who")); }
     if (text.length < 5) return showError(t("too_short"));
     $("send").disabled = true;
     let p;
@@ -146,9 +150,12 @@
       },
     });
   });
+  $("copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText($("code").textContent); $("copy").classList.add("on"); } catch (e) {}
+  });
   $("again").addEventListener("click", () => {
-    $("text").value = ""; rating = null; who = null; urgent = false;
-    document.querySelectorAll(".choice").forEach(x => x.classList.remove("on"));
+    $("text").value = ""; rating = null; who = null; urgent = false; $("n3").textContent = "3";
+    document.querySelectorAll(".choice").forEach(x => { x.classList.remove("on"); x.setAttribute("aria-pressed", "false"); });
     $("helpbox").classList.add("hidden"); $("helpbtn").classList.remove("hidden"); $("rateblock").classList.remove("hidden");
     $("done").classList.add("hidden"); $("form").classList.remove("hidden");
   });

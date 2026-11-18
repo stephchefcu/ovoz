@@ -1,0 +1,84 @@
+# Ovoz: team notes
+
+*Ovoz* ("voice") lets patients, relatives and staff report problems in a clinic **anonymously, by voice or text**
+(Uzbek, Russian, English), on the **web** or in **Telegram**. AI hides personal details, sorts reports, links what
+patients and staff say about the same ward, and helps the clinic fix causes. Hackathon problems #7 and #8.
+
+## Try it (demo)
+
+The public link changes whenever the tunnel restarts. Current one:
+**https://impossible-herb-households-swim.trycloudflare.com**
+
+| What | Path (add to the link) |
+|---|---|
+| Home | `/` |
+| Demo clinic page | `/c/demo` |
+| Patient form (Surgery ward A, what the QR opens) | `/r/PDSnB8oz` |
+| Staff form | `/c/demo/staff` |
+| Follow up a report (demo code with a clinic question: `DEMO-2345`) | `/case` |
+| Clinic login → dashboard, settings, QR codes | `/login` |
+| Sign up a new clinic | `/signup` |
+| Terms and privacy | `/privacy?c=demo` |
+
+**Telegram:** [@ovoz_feedback_bot](https://t.me/ovoz_feedback_bot)
+- Patient (Surgery ward A): `https://t.me/ovoz_feedback_bot?start=w_PDSnB8oz`
+- Staff: `https://t.me/ovoz_feedback_bot?start=s_demo`
+
+**Clinic login:** clinic code `demo`. The password is `CLINIC_PASSWORD` in `.env` on the laptop that runs Ovoz
+(never in the repo); ask whoever runs it. Or sign up your own test clinic at `/signup`.
+
+## The flows
+
+- **Patient (department QR):** "Help NOW" button (nurse call / 103), I am a patient or a relative,
+  good / OK / bad (optional), voice or text, check, send. Under 30 seconds.
+- **Staff (staff-room QR):** department, voice or text, check, send. Staff never pick a category or severity: the AI does.
+- **Every time, before anything is saved:** people see exactly what will be stored (text with names and numbers
+  already hidden, ward, role, date and part of day), a warning about details that could identify someone
+  (e.g. "the only nurse", an age), and they must agree to the terms. Then they get a case code.
+- **Clinic:** dashboard (headline = problems fixed; linked patient + staff problems; urgent; early warning),
+  root-cause help, actions, "You said, we did" board, questions to reporters via the case code.
+
+## What to say about privacy
+
+- We store **no** name, phone, Telegram ID, device, IP address or audio. Voice is deleted after transcription,
+  also at VoiceLab.
+- Time is stored as day + morning / afternoon / night only. Staff reports reach managers as neutral summaries, week only.
+- Places with fewer than 3 reports are combined, so nobody can be singled out. Wards are never ranked by report count.
+- Each clinic sees only its own data.
+- "We don't rely on people being perfect. We design so honest behaviour is easy and dishonest behaviour is visible."
+
+## Honest limits
+
+- Name hiding is rule-based and can miss names; the privacy check helps, a language model would do better.
+- Triage uses keyword rules unless an AI model key is added (`LLM_*` in `.env`).
+- One shared password per clinic: no roles yet.
+- Not built (say "in our pilot design"): instant duty-manager alert, roles (ward head, quality coordinator),
+  ACT / WATCH / CLOSE with reasons and audit log, 30-day "did the fix work" check, silence and zero-scan alerts.
+- Hosting is a free tunnel from one laptop: if the laptop sleeps or restarts, the link stops or changes.
+- Terms text and Uzbek / Russian wording need a lawyer and native speakers before real use.
+
+## Run it (on the laptop)
+
+Three terminal tabs in the project folder:
+
+```bash
+.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1 --no-access-log
+```
+```bash
+.venv/bin/python -m app.telegram_bot
+```
+```bash
+~/.local/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8000
+```
+
+New tunnel link → reprint QR codes from `/qr`. Keep the laptop awake (`caffeinate -d`).
+Tests: `python tests/smoke_test.py` and `python tests/telegram_bot_test.py`.
+Code: `github.com/stephchefcu/ovoz` (private). Keys live only in `.env`.
+
+## 2-minute demo
+
+1. Scan a department QR on a phone: tap Patient, a face, record a voice note in Uzbek.
+2. Show the check screen: masked text, the privacy warning, "I agree". Send, get the code.
+3. Staff side in Telegram: one voice note, AI decides it's a near-miss.
+4. Dashboard: the same ward appears as a **linked** problem (patients + staff), root-cause help, create an action.
+5. Mark it done: it shows on the "You said, we did" board; reply to the reporter via the case code.

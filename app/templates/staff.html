@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Staff report · {{ clinic.name }} · Ovoz{% endblock %}
 {% block nav %}
   <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
@@ -8,17 +9,17 @@
   <div id="form">
     <div class="eyebrow">{{ clinic.name }}</div>
     <h1 data-i18n="s_title"></h1>
-    <div class="trust">🔒 <span data-i18n="trust_staff"></span></div>
+    <div class="trust">{{ icon("lock", 20) }}<span data-i18n="trust_staff"></span></div>
     <p class="muted" data-i18n="staff_prompt"></p>
 
     <div class="card">
-      <label for="ward" class="q" data-i18n="p_ward"></label>
+      <div class="step"><span class="n">1</span><label for="ward" style="margin:0" data-i18n="p_ward"></label></div>
       <select id="ward">
         {% for w in wards %}<option value="{{ w.code }}" data-name-en="{{ w.name }}" data-name-uz="{{ w.name_uz or '' }}" data-name-ru="{{ w.name_ru or '' }}">{{ w.name }}</option>{% endfor %}
       </select>
 
-      <label for="text" class="q" data-i18n="p_what"></label>
-      <button type="button" class="rec" id="recbtn">🎤</button>
+      <div class="step"><span class="n">2</span><label for="text" style="margin:0" data-i18n="p_what"></label></div>
+      <button type="button" class="rec" id="recbtn">{{ icon("mic") }}<span class="lbl"></span></button>
       <div id="recstatus" class="note info hidden"></div>
       <textarea id="text" data-i18n-ph="s_ph" maxlength="3000" style="margin-top:10px"></textarea>
 
@@ -40,13 +41,14 @@
 
   <div id="review" class="card hidden"></div>
 
-  <div id="done" class="hidden">
-    <div class="done-mark">✅</div>
+  <div id="done" class="done hidden">
+    {{ icon("check", 56) }}
     <h1 data-i18n="done_title"></h1>
     <div id="seriousnote" class="note warn hidden" data-i18n="serious_note"></div>
     <div id="bribenote" class="note info hidden" data-i18n="bribe_note"></div>
     <p data-i18n="done_code"></p>
-    <div class="code" id="code"></div>
+    <div class="codebox"><div class="code" id="code"></div>
+      <button class="ghost" id="copy" aria-label="Copy">{{ icon("copy", 20) }}</button></div>
     <p class="muted small"><span data-i18n="done_follow"></span> <a href="/case">/case</a></p>
     <button class="ghost block" id="again" data-i18n="again"></button>
   </div>
@@ -98,6 +100,9 @@
         window.scrollTo(0, 0);
       },
     });
+  });
+  $("copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText($("code").textContent); $("copy").classList.add("on"); } catch (e) {}
   });
   $("again").addEventListener("click", () => {
     $("text").value = ""; $("done").classList.add("hidden"); $("form").classList.remove("hidden");

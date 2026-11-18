@@ -148,4 +148,10 @@ dd = clinic.get("/api/dashboard").json()
 check("headline metric is problems fixed", "fixed" in dd["kpi"])
 check("wards are listed A-Z, not ranked", [h["label"].lower() for h in dd["heat"]] == sorted(h["label"].lower() for h in dd["heat"]))
 
+import re as _re  # noqa: E402
+_emo = _re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2300-\u23FF\uFE0F]")
+pages = [anon.get(u).text for u in ("/", "/c/demo", "/c/demo/staff", "/r/" + codes["Therapy ward"], "/case", "/privacy?c=demo")]
+pages.append(anon.get("/static/i18n.js").text)
+check("web pages and interface text contain no emojis", not any(_emo.search(x) for x in pages))
+
 sys.exit(1 if check.failed else 0)

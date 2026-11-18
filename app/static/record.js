@@ -2,6 +2,8 @@
 // The audio is sent to OUR server only (never directly to the speech service) and is not kept.
 function setupRecorder(opts) {
   const { button, status, textarea } = opts;
+  // the button may hold an icon; only its text label changes
+  const label = txt => { const l = button.querySelector(".lbl"); if (l) l.textContent = txt; else button.textContent = txt; };
   const MAX_MS = 90000;
   let rec = null, chunks = [], timer = null, stream = null;
 
@@ -11,7 +13,7 @@ function setupRecorder(opts) {
   }
   function reset() {
     button.classList.remove("live");
-    button.textContent = t("voice_start");
+    label(t("voice_start"));
     button.disabled = false;
     if (timer) clearTimeout(timer);
     if (stream) stream.getTracks().forEach(tr => tr.stop());
@@ -57,7 +59,7 @@ function setupRecorder(opts) {
     };
     rec.start();
     button.classList.add("live");
-    button.textContent = t("voice_stop");
+    label(t("voice_stop"));
     setStatus(t("voice_rec") + " " + t("voice_max"), "info");
     timer = setTimeout(() => { if (rec && rec.state === "recording") rec.stop(); }, MAX_MS);
   }
@@ -66,8 +68,8 @@ function setupRecorder(opts) {
     if (rec && rec.state === "recording") { rec.stop(); } else { start(); }
   });
   document.addEventListener("langchange", () => {
-    if (!button.classList.contains("live")) button.textContent = t("voice_start");
+    if (!button.classList.contains("live")) label(t("voice_start"));
   });
-  button.textContent = t("voice_start");  // the page language was applied before this listener existed
+  label(t("voice_start"));  // the page language was applied before this listener existed
   setStatus("");
 }
