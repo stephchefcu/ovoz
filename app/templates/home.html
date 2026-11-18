@@ -1,75 +1,36 @@
 {% extends "base.html" %}
-{% from "_icons.html" import icon %}
 {% block nav %}
-  {% if is_clinic %}<a href="/dashboard">Dashboard</a><a href="/logout">Log out</a>
-  {% else %}<a href="/pricing">Pricing</a><a href="/login">Clinic login</a><a class="btn small" href="/signup">Sign up</a>{% endif %}
+  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+  {% if is_clinic %}<a href="/dashboard" data-i18n="h_dashboard">Boshqaruv paneli</a>
+  {% else %}<a href="/login" data-i18n="h_login">Kirish</a>{% endif %}
 {% endblock %}
 {% block footclass %}home-foot{% endblock %}
 {% block content %}
 <div class="home">
-
   <section class="home-hero">
-    <div class="home-hero-text">
-      <h1>Clinic safety and feedback, <span>by voice.</span></h1>
-      <p class="lead">Patients, relatives and staff speak up anonymously, by voice or text. Each clinic sees the
-        connected picture and fixes the causes.</p>
-      <div class="row home-cta">
-        {% if is_clinic %}<a class="btn" href="/dashboard">Open your dashboard</a>
-        {% else %}<a class="btn" href="/signup">Sign up your clinic</a>{% endif %}
-        {% if demo %}<a class="btn ghost" href="/c/demo">Try the demo clinic</a>{% endif %}
-      </div>
-      <ul class="home-facts">
-        <li>{{ icon("lock", 18) }}Anonymous: no names, phones or audio kept</li>
-        <li>{{ icon("mic", 18) }}Uzbek, Russian, English</li>
-        <li>{{ icon("send", 18) }}On the web and in Telegram</li>
-      </ul>
-    </div>
-
-    <div class="home-demo" aria-hidden="true">
-      <div class="demo-card">
-        <div class="demo-head"><span class="demo-dot"></span>Surgery ward A · patient</div>
-        <div class="demo-wave">{% for h in [10, 18, 28, 16, 34, 22, 12, 26, 38, 20, 14, 30, 18, 10, 24, 16] %}<i style="height:{{ h }}px"></i>{% endfor %}</div>
-        <p class="demo-text">“Nobody came for two hours after I pressed the call button. Nurse <mark>[NAME]</mark> said
-          the night shift is short.”</p>
-        <div class="demo-tags"><span>Names hidden</span><span>Care delays</span></div>
-        <div class="demo-code">Case code <b>K7QM-4TXH</b></div>
-      </div>
-      <div class="demo-link">{{ icon("check", 18) }}Linked with 2 staff reports from the same ward</div>
+    <h1><span data-i18n="h_title">Shifoxonada xavfsizlik va fikr-mulohaza,</span>
+      <em data-i18n="h_accent">ovoz orqali.</em></h1>
+    <p class="lead" data-i18n="h_lead">Bemorlar va xodimlar anonim tarzda fikr bildiradi. Shifoxona muammolarni ko'radi
+      va sabablarini bartaraf etadi.</p>
+    <div class="row home-cta">
+      {% if is_clinic %}<a class="btn" href="/dashboard" data-i18n="h_dashboard">Boshqaruv paneli</a>
+      {% else %}<a class="btn" href="/signup" data-i18n="h_signup">Klinikani ro'yxatdan o'tkazish</a>{% endif %}
+      {% if demo %}<a class="btn ghost" href="/c/demo" data-i18n="h_demo">Demoni ko'rish</a>{% endif %}
     </div>
   </section>
 
-  <section class="home-steps">
-    <h2>How it works</h2>
-    <ol>
-      <li><span class="num">1</span><div><b>Scan the QR code</b><p>Every department has its own poster. No app and no
-        sign-in.</p></div></li>
-      <li><span class="num">2</span><div><b>Speak or type</b><p>Names and numbers are hidden before anything is saved.
-        People see exactly what is stored.</p></div></li>
-      <li><span class="num">3</span><div><b>The clinic fixes the cause</b><p>Patient and staff reports about the same
-        place are linked. The reporter can follow up with their case code.</p></div></li>
-    </ol>
-  </section>
+  <ol class="home-steps">
+    <li><span>1</span><b data-i18n="h_s1">QR kodni skanerlang</b></li>
+    <li><span>2</span><b data-i18n="h_s2">Gapiring yoki yozing</b></li>
+    <li><span>3</span><b data-i18n="h_s3">Shifoxona sababini tuzatadi</b></li>
+  </ol>
 
-  <section class="home-paths">
-    <div class="card">
-      <h2>{{ icon("user", 22) }}Already reported?</h2>
-      <p class="muted">Use your case code to see the clinic's answer or add something.</p>
-      <div class="row">
-        <a class="btn ghost" href="/case">Follow up with your code</a>
-        {% if bot %}<a class="small" href="https://t.me/{{ bot }}">Telegram: @{{ bot }}</a>{% endif %}
-      </div>
-    </div>
-    <div class="card">
-      <h2>{{ icon("building", 22) }}For clinics</h2>
-      <p class="muted">Add your departments and print your QR codes. Only your clinic sees your reports. Free for small
-        clinics; larger clinics get the full plan free for 60 days.</p>
-      <div class="row">
-        {% if is_clinic %}<a class="btn ghost" href="/dashboard">Dashboard</a>
-        {% else %}<a class="btn ghost" href="/login">Clinic login</a>{% endif %}
-        <a class="small" href="/pricing">See pricing</a>
-      </div>
-    </div>
-  </section>
-
+  <p class="home-links small">
+    <a href="/case" data-i18n="h_case">Murojaat kodingiz bormi? Shifoxona javobini ko'ring</a>
+    <a href="/pricing" data-i18n="h_pricing">Narxlar</a>
+  </p>
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/i18n.js?v={{ V }}"></script>
 {% endblock %}
