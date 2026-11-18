@@ -9,37 +9,45 @@
     <div class="note ok"><b data-i18n="qr_ready">Your clinic is ready.</b>
       <span data-i18n="qr_ready_sub">Print this QR code and put it up. Add departments later in Settings if you need them.</span></div>
     {% endif %}
-    <h1 data-i18n="qr_title">Printable QR codes</h1>
-    <p class="muted">{{ clinic.name }}. <span data-i18n="qr_sub">One code per department. Print it and put it where patients can see it.</span>
-      {% if bot %}<span data-i18n="qr_tg">The small code opens the Telegram bot already set to that department.</span>{% endif %}
-      <span data-i18n="qr_staff">The last poster is for the staff room.</span></p>
-    <button onclick="window.print()" data-i18n="qr_print">Print</button>
+    <div class="page-head">
+      <div>
+        <h1 data-i18n="qr_title">Printable QR codes</h1>
+        <p class="muted" data-i18n="qr_sub">One code per department. Print it and put it where patients can see it.</p>
+      </div>
+      {% if wards %}<button onclick="window.print()" data-i18n="qr_print">Print</button>{% endif %}
+    </div>
     {% if not wards %}<p class="note warn"><span data-i18n="qr_none">No departments yet.</span>
       <a href="/settings" data-i18n="qr_add">Add them in Settings first.</a></p>{% endif %}
   </div>
-  <div style="margin-top:16px">
+
+  {# One poster = one QR code. Uzbek first, Russian below; the department name at the bottom. #}
+  <div class="posters">
     {% for w in wards %}
-      <div class="qr">
-        <div class="qr-brand"><img src="/static/brand/wordmark.svg?v={{ V }}" alt="Ovoz" width="85" height="22"></div>
-        <div class="small muted">{{ clinic.name }}</div>
-        <div style="font-weight:700;font-size:1.05rem">{{ w.name_uz or w.name }}</div>
-        <div class="small muted">{{ w.name_ru or w.name }}</div>
-        {{ w.svg|safe }}
-        <div style="font-weight:600">Anonim xabar bering · Сообщите анонимно<br><span class="small">Tell us anonymously</span></div>
-        {% if w.tg_svg %}<div class="tgqr">{{ w.tg_svg|safe }}<div class="small">Telegram</div></div>{% endif %}
+    <div class="poster">
+      <img class="poster-logo" src="/static/brand/wordmark.svg?v={{ V }}" alt="Ovoz" width="108" height="28">
+      <div class="poster-title">Fikringizni anonim bildiring</div>
+      <div class="poster-sub">Оставьте отзыв анонимно</div>
+      <div class="poster-qr">{{ w.svg|safe }}</div>
+      <div class="poster-scan">Kamera bilan skanerlang · Наведите камеру</div>
+      <div class="poster-place">
+        <b>{{ w.name_uz or w.name }}</b>
+        {% if w.name_ru and w.name_ru != (w.name_uz or w.name) %}<span>{{ w.name_ru }}</span>{% endif %}
+        <small>{{ clinic.name }}</small>
       </div>
-    {% endfor %}
-    <div class="qr">
-      <div class="qr-brand"><img src="/static/brand/wordmark.svg?v={{ V }}" alt="Ovoz" width="85" height="22"></div>
-      <div class="small muted">{{ clinic.name }}</div>
-      <div style="font-weight:700;font-size:1.05rem">Xodimlar uchun · Для сотрудников</div>
-      <div class="small muted">For staff</div>
-      {{ staff_svg|safe }}
-      <div style="font-weight:600">Xatolik yoki xavfli holat haqida anonim xabar<br><span class="small">Сообщить об ошибке анонимно</span></div>
-      {% if staff_tg_svg %}<div class="tgqr">{{ staff_tg_svg|safe }}<div class="small">Telegram</div></div>{% endif %}
     </div>
+    {% endfor %}
+    {% if wards %}
+    <div class="poster staff">
+      <div class="poster-band">Xodimlar uchun · Для сотрудников</div>
+      <img class="poster-logo" src="/static/brand/wordmark.svg?v={{ V }}" alt="Ovoz" width="108" height="28">
+      <div class="poster-title">Xatolik haqida anonim xabar</div>
+      <div class="poster-sub">Сообщите об ошибке анонимно</div>
+      <div class="poster-qr">{{ staff_svg|safe }}</div>
+      <div class="poster-scan">Kamera bilan skanerlang · Наведите камеру</div>
+      <div class="poster-place"><small>{{ clinic.name }}</small></div>
+    </div>
+    {% endif %}
   </div>
-  <p class="small muted noprint"><span data-i18n="qr_code">Clinic code for the Telegram bot:</span> <code>{{ clinic.slug }}</code></p>
 </div>
 {% endblock %}
 {% block scripts %}
