@@ -594,4 +594,4 @@ def qr_sheet(request: Request, new: int = 0):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "llm": ai.llm_enabled(), "voice": voice.provider()}
+    return {"ok": True, "llm": ai.llm_provider() or False, "voice": voice.provider()}

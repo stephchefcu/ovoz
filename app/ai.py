@@ -3,8 +3,10 @@ and root-cause help.
 
 Design rules
 - Personal details are masked with regexes BEFORE any text is stored or sent to an LLM.
-- If an OpenAI-compatible LLM is configured (LLM_BASE_URL / LLM_API_KEY / LLM_MODEL) it is used;
-  otherwise a keyword-rule fallback (Uzbek Latin/Cyrillic, Russian, English) keeps everything working offline.
+- AI model, in this order: Claude if ANTHROPIC_API_KEY is set (model CLAUDE_MODEL, default Claude Sonnet 5.5),
+  else any OpenAI-compatible API if LLM_BASE_URL / LLM_API_KEY / LLM_MODEL are set. With neither, or if the call
+  fails, a keyword-rule fallback (Uzbek Latin/Cyrillic, Russian, English) keeps everything working offline.
+- Only the masked text is ever sent to an AI model.
 - The AI only suggests. It never assigns blame to a person.
 """
 import json
@@ -284,13 +286,62 @@ def is_rule_summary(summary: str) -> bool:
     return any(summary in (d, d + NEAR_MISS_SUFFIX) for _, _, d in CATEGORIES.values())
 
 
+def llm_provider():
+    """Which AI model is switched on: "claude", "openai-compatible", or None (keyword rules only)."""
+    if config.ANTHROPIC_API_KEY:
+        return "claude"
+    if config.LLM_BASE_URL and config.LLM_API_KEY and config.LLM_MODEL:
+        return "openai-compatible"
+    return None
+
+
 def llm_enabled() -> bool:
-    return bool(config.LLM_BASE_URL and config.LLM_API_KEY and config.LLM_MODEL)
+    return llm_provider() is not None
 
 
-def llm_json(system: str, user: str, timeout: float = 25.0):
-    if not llm_enabled():
+def _parse_json(content: str):
+    content = re.sub(r"^```(?:json)?|```$", "", content.strip(), flags=re.M).strip()
+    return json.loads(content)
+
+
+_CLAUDE = {"client": None}
+
+
+def _claude_client():
+    """Created on first use, so the app runs without the anthropic package until Claude is switched on."""
+    if _CLAUDE["client"] is None:
+        import anthropic  # noqa: PLC0415
+        _CLAUDE["client"] = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY, max_retries=1)
+    return _CLAUDE["client"]
+
+
+def _claude_json(system: str, user: str, timeout: float, effort: str, max_tokens: int):
+    """One Claude call that must answer with JSON. Returns None on any problem, so the rules take over."""
+    response = _claude_client().beta.messages.create(
+        model=config.CLAUDE_MODEL,
+        max_tokens=max_tokens,
+        system=system,
+        messages=[{"role": "user", "content": user}],
+        output_config={"effort": effort},           # low = quick sorting; medium = root-cause help
+        betas=["server-side-fallback-2026-07-01"],  # if the model declines, the API retries on a fallback model
+        fallbacks="default",
+        timeout=timeout,
+    )
+    if response.stop_reason == "refusal":
         return None
+    text = "".join(block.text for block in response.content if block.type == "text")
+    return _parse_json(text)
+
+
+def llm_json(system: str, user: str, timeout: float = 25.0, effort: str = "low", max_tokens: int = 2000):
+    provider = llm_provider()
+    if provider is None:
+        return None
+    if provider == "claude":
+        try:
+            return _claude_json(system, user, timeout, effort, max_tokens)
+        except Exception:
+            return None
     try:
         r = httpx.post(
             f"{config.LLM_BASE_URL}/chat/completions",
@@ -303,9 +354,7 @@ def llm_json(system: str, user: str, timeout: float = 25.0):
             timeout=timeout,
         )
         r.raise_for_status()
-        content = r.json()["choices"][0]["message"]["content"].strip()
-        content = re.sub(r"^```(?:json)?|```$", "", content, flags=re.M).strip()
-        return json.loads(content)
+        return _parse_json(r.json()["choices"][0]["message"]["content"])
     except Exception:
         return None
 
@@ -719,8 +768,8 @@ def rca(theme: str, unit_label: str, patient_texts, staff_summaries, lang: str =
         "patient_reports": patient_texts[:8],
         "staff_summaries": staff_summaries[:8],
     }
-    llm = (llm_json(_RCA_SYSTEM.replace("{language}", _LANG_NAMES[lang]), json.dumps(payload, ensure_ascii=False))
-           if use_llm else None)
+    llm = (llm_json(_RCA_SYSTEM.replace("{language}", _LANG_NAMES[lang]), json.dumps(payload, ensure_ascii=False),
+                    timeout=60.0, effort="medium", max_tokens=6000) if use_llm else None)
     if isinstance(llm, dict) and isinstance(llm.get("whys"), list) and isinstance(llm.get("fixes"), list):
         out["summary"] = str(llm.get("summary", out["summary"]))
         out["whys"] = [str(x) for x in llm["whys"]][:6]

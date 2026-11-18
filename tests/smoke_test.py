@@ -7,7 +7,7 @@ import tempfile
 os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
 # Ignore the real .env: demo password, no paid speech or LLM calls.
 os.environ.update({"CLINIC_PASSWORD": "demo", "SESSION_SECRET": "smoke-test-secret", "VOICELAB_API_KEY": "",
-                   "AISHA_API_KEY": "", "LLM_BASE_URL": "", "LLM_API_KEY": "", "LLM_MODEL": "",
+                   "AISHA_API_KEY": "", "ANTHROPIC_API_KEY": "", "LLM_BASE_URL": "", "LLM_API_KEY": "", "LLM_MODEL": "",
                    "STAFF_RELEASE_DELAY_HOURS": "0", "K_MIN": "3"})
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

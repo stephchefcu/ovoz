@@ -9,7 +9,7 @@ NOTE: draft text for a hackathon MVP. Have a lawyer and native speakers review i
 """
 from typing import Optional
 
-TERMS_VERSION = "2026-11-18.2"  # staff reports: summary or the checked text
+TERMS_VERSION = "2026-11-18.3"  # adds the optional AI service (Anthropic)
 
 _CLINIC = {"uz": "shifoxona", "ru": "клиника", "en": "the clinic"}
 _CONTACT = {"uz": "shifoxona ma'muriyatiga murojaat qiling", "ru": "обратитесь в администрацию клиники",
@@ -64,6 +64,8 @@ _TEXT = {
             ]),
             ("Biz foydalanadigan xizmatlar", [
                 "VoiceLab — ovozni matnga aylantirish uchun.",
+                "Anthropic (Claude) — faqat sun'iy intellekt yoqilgan bo'lsa: xabarni saralash va sabablarni taklif qilish "
+                "uchun ismlar allaqachon yashirilgan matnni oladi.",
                 "Telegram — agar botdan foydalansangiz. Telegram'ning o'z maxfiylik siyosati amal qiladi va Telegram "
                 "xabar qaysi akkauntdan kelganini biladi.",
                 "Ushbu xizmatni ishlatadigan hosting va tarmoq provayderlari.",
@@ -118,6 +120,8 @@ _TEXT = {
             ]),
             ("Сервисы, которые мы используем", [
                 "VoiceLab — для перевода голоса в текст.",
+                "Anthropic (Claude) — только если включён искусственный интеллект: получает текст с уже скрытыми именами, "
+                "чтобы распределить сообщение и предложить причины.",
                 "Telegram — если вы пользуетесь ботом. Действует политика конфиденциальности Telegram, и Telegram знает, "
                 "с какого аккаунта пришло сообщение.",
                 "Хостинг и сетевые провайдеры, на которых работает этот сервис.",
@@ -172,6 +176,8 @@ _TEXT = {
             ]),
             ("Services we use", [
                 "VoiceLab, to turn voice into text.",
+                "Anthropic (Claude), only if AI is switched on: it receives the text with names already hidden, to sort the "
+                "report and suggest causes.",
                 "Telegram, if you use the bot. Telegram's own privacy policy applies, and Telegram knows which account "
                 "sent a message.",
                 "The hosting and network providers that run this service.",
