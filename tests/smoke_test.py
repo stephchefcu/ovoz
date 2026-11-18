@@ -75,6 +75,8 @@ check("reporter sees the question and their reply by code",
       [m["sender"] for m in anon.post("/api/case/open", json={"code": code}).json()["messages"]] == ["reporter", "clinic"])
 check("wrong code rejected", anon.post("/api/case/open", json={"code": "AAAA-AAAA"}).status_code == 404)
 check("RCA works", clinic.post("/api/clusters/rca", json={"key": d["clusters"][0]["key"]}).json()["fixes"])
+check("RCA with a malformed key is refused, not a server error",
+      clinic.post("/api/clusters/rca", json={"key": "garbage"}).status_code == 422)
 check("demo transcription works", anon.post("/api/transcribe", files={"audio": ("v.webm", b"x", "audio/webm")}, data={"lang": "uz"}).json()["text"])
 
 
@@ -156,5 +158,14 @@ _emo = _re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2300-\u23F
 pages = [anon.get(u).text for u in ("/", "/c/demo", "/c/demo/staff", "/r/" + codes["Therapy ward"], "/case", "/privacy?c=demo")]
 pages.append(anon.get("/static/i18n.js").text)
 check("web pages and interface text contain no emojis", not any(_emo.search(x) for x in pages))
+
+# attempt limits forget expired connections, so the in-memory store cannot grow without end
+import time as _time  # noqa: E402
+from app import main as _main  # noqa: E402
+_old = _time.time() - 2 * _main._RATE_MAX_WINDOW
+for _i in range(10_001):
+    _main._RATE[f"old{_i}"].append(_old)
+anon.post("/api/preview", json={"text": "hello"})
+check("expired attempt records are cleared", len(_main._RATE) < 100)
 
 sys.exit(1 if check.failed else 0)
