@@ -239,4 +239,32 @@ check("Claude reported on only when it can actually run", ai.llm_provider() == e
 ai.config.ANTHROPIC_API_KEY = _saved_key
 ai._CLAUDE_CHECK["ok"] = None
 
+import pathlib  # noqa: E402
+# ---- an AI key pasted into .env while running takes effect without a restart --------------------------
+import tempfile as _tf, time as _time  # noqa: E402,E401
+from app import config as _cfg  # noqa: E402
+_can_claude = sys.version_info >= (3, 10) and __import__("importlib.util").util.find_spec("anthropic") is not None
+_saved = (_cfg.DOTENV_PATH, set(_cfg._EXTERNAL), _cfg.ANTHROPIC_API_KEY, _cfg.CLAUDE_MODEL, dict(_cfg._DOTENV_SEEN))
+_envfile = pathlib.Path(_tf.mkdtemp()) / ".env"
+_envfile.write_text("CLINIC_PASSWORD=x\nANTHROPIC_API_KEY=\n")
+_cfg.DOTENV_PATH = _envfile
+_cfg._EXTERNAL.discard("ANTHROPIC_API_KEY"); _cfg._EXTERNAL.discard("CLAUDE_MODEL")
+_cfg.ANTHROPIC_API_KEY = ""; _cfg._DOTENV_SEEN["mtime"] = None
+ai._CLAUDE_CHECK["ok"] = None
+check("no key in .env: keyword rules", ai.llm_provider() is None)
+_time.sleep(0.02)
+_envfile.write_text("CLINIC_PASSWORD=x\nANTHROPIC_API_KEY=test-key-not-real\nCLAUDE_MODEL=claude-sonnet-5-5\n")
+import os as _os; _os.utime(_envfile, (_time.time() + 5, _time.time() + 5))
+check("key pasted into .env while running: Claude on, no restart",
+      ai.llm_provider() == ("claude" if _can_claude else None) and _cfg.ANTHROPIC_API_KEY == "test-key-not-real")
+_envfile.write_text("CLINIC_PASSWORD=x\nANTHROPIC_API_KEY=\n")
+_os.utime(_envfile, (_time.time() + 10, _time.time() + 10))
+check("key removed from .env: back to keyword rules", ai.llm_provider() is None)
+_cfg._EXTERNAL.add("ANTHROPIC_API_KEY")
+_envfile.write_text("ANTHROPIC_API_KEY=from-file\n"); _os.utime(_envfile, (_time.time() + 15, _time.time() + 15))
+ai.llm_provider()
+check("a key set outside .env is never overridden by the file", _cfg.ANTHROPIC_API_KEY == "")
+_cfg.DOTENV_PATH, _cfg._EXTERNAL, _cfg.ANTHROPIC_API_KEY, _cfg.CLAUDE_MODEL = _saved[0], _saved[1], _saved[2], _saved[3]
+_cfg._DOTENV_SEEN.clear(); _cfg._DOTENV_SEEN.update(_saved[4]); ai._CLAUDE_CHECK["ok"] = None; ai._CLAUDE["client"] = None
+
 sys.exit(1 if check.failed else 0)

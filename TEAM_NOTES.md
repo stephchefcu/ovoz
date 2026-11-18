@@ -138,10 +138,10 @@ pilot in one clinic with numbers (reports per week, share linked, problems fixed
 ## Honest limits
 
 - Name hiding is rule-based and can miss names; the privacy check helps, a language model would do better.
-- Triage uses keyword rules. Claude Sonnet 5.5 is ready but **off**. It needs **Python 3.10 or newer** (the demo laptop
-  has 3.9, so there it stays off: with a key set, the app prints one warning and keeps the rules). To switch it on, on
-  Python 3.10+: run `pip install -r requirements.txt`, put `ANTHROPIC_API_KEY=...` in `.env` and restart the web app and
-  the bot (`/api/health` then shows `"llm": "claude"`).
+- Triage uses keyword rules. Claude Sonnet 5.5 is ready but **off** until a key is added. To switch it on: put
+  `ANTHROPIC_API_KEY=...` in `.env` and save. That's all: it takes effect on the next report, **no restart** (the web
+  app tab prints "Claude is now on", `/api/health` shows `"llm": "claude"`). Delete the key to switch it off again.
+  Ovoz runs on Python 3.12 in `.venv` (Claude needs 3.10+; on older Python it warns once and keeps the rules).
   About $2 per busy clinic per month. Only text with names already hidden is sent; if Claude is down, the rules take over.
 - One shared password per clinic: no roles yet.
 - Not built (say "in our pilot design"): instant duty-manager alert, roles (ward head, quality coordinator),
@@ -174,7 +174,7 @@ Three terminal tabs in the project folder:
 
 New tunnel link → reprint QR codes from `/qr`. Keep the laptop awake (`caffeinate -d`).
 Tests: `python tests/smoke_test.py`, `python tests/telegram_bot_test.py` and `python tests/claude_test.py` (every line
-should say PASS; the Claude test uses a fake server and never calls Anthropic, and prints SKIP on Python 3.9).
+should say PASS; the Claude test uses a fake server and never calls Anthropic).
 
 **Get the latest code** (after a pull request is merged): in a free tab run `git pull origin main`, then restart the
 web app **and the bot**, each in its own tab (Ctrl+C, wait for the `ovoz %` line, then the same command). Restart the
@@ -190,7 +190,10 @@ Ctrl+C in the cloudflared tab.
 - Pages show raw names like `po_title`, an old look, or the web app tab shows an error trace after an update: the old
   web app is still running. Ctrl+C in its tab, `pkill -f "uvicorn app.main:app"`, start it again, then reload the
   browser without its cache (Safari: Cmd+Option+R).
-- After a pull that changes `requirements.txt`, install once: `.venv/bin/pip install -r requirements.txt`.
+- After a pull that changes `requirements.txt`, install once:
+  `~/.local/bin/uv pip install --python .venv/bin/python -r requirements.txt` (the environment has no `pip` of its own).
+- To build the environment from scratch (new laptop, or `.venv` broken), Python 3.12 via `uv`, no admin password:
+  `~/.local/bin/uv venv --python 3.12 .venv` then the install line above. Get `uv` from github.com/astral-sh/uv.
 - `git pull` refuses because of local changes: first find out whose they are (`git status`). Those changes may be
   someone else's unfinished work (see "Working together"). Do not stash or discard them; ask, or let their owner commit.
 - Starting everything over (Cmd+Q) also stops the tunnel: the link changes, so update it here and reprint the QR codes.
