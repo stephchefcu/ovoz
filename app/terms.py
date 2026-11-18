@@ -7,7 +7,7 @@ Bump TERMS_VERSION whenever the meaning of the text changes.
 NOTE: draft text for a hackathon MVP. Have a lawyer and native speakers review it before real use
 (personal-data law in Uzbekistan, where data is stored, and the clinic's own complaint procedures).
 """
-from . import config
+from typing import Optional
 
 TERMS_VERSION = "2026-11-18"
 
@@ -16,12 +16,12 @@ _CONTACT = {"uz": "shifoxona ma'muriyatiga murojaat qiling", "ru": "обрати
             "en": "ask the clinic's administration"}
 
 
-def clinic(lang: str) -> str:
-    return config.CLINIC_NAME or _CLINIC[lang]
+def clinic(lang: str, c: Optional[dict] = None) -> str:
+    return (c or {}).get("name") or _CLINIC[lang]
 
 
-def contact(lang: str) -> str:
-    return config.CLINIC_CONTACT or _CONTACT[lang]
+def contact(lang: str, c: Optional[dict] = None) -> str:
+    return (c or {}).get("contact") or _CONTACT[lang]
 
 
 # Each language: title, intro, then sections of (heading, [bullets]). {clinic} and {contact} are filled in.
@@ -192,11 +192,11 @@ _TEXT = {
 }
 
 
-def terms(lang: str) -> dict:
-    """The full text for one language with the clinic name and contact filled in."""
+def terms(lang: str, c: Optional[dict] = None) -> dict:
+    """The full text for one language with the clinic's name and contact filled in (c = clinic row)."""
     lang = lang if lang in _TEXT else "uz"
     src = _TEXT[lang]
-    fill = {"clinic": clinic(lang), "contact": contact(lang)}
+    fill = {"clinic": clinic(lang, c), "contact": contact(lang, c)}
     return {
         "lang": lang,
         "title": src["title"],
@@ -207,10 +207,10 @@ def terms(lang: str) -> dict:
     }
 
 
-def terms_html(lang: str) -> str:
+def terms_html(lang: str, c: Optional[dict] = None) -> str:
     """Telegram-ready version (HTML parse mode)."""
     import html
-    t = terms(lang)
+    t = terms(lang, c)
     parts = [f"<b>{html.escape(t['title'], quote=False)}</b>", html.escape(t["intro"], quote=False)]
     for heading, items in t["sections"]:
         parts.append(f"<b>{html.escape(heading, quote=False)}</b>\n" + "\n".join("• " + html.escape(i, quote=False) for i in items))

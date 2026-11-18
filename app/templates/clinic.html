@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ clinic.name }} · Ovoz{% endblock %}
+{% block nav %}
+  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+{% endblock %}
+{% block content %}
+<div class="wrap">
+  <h1>{{ clinic.name }}</h1>
+  <p class="muted" data-i18n="p_sub"></p>
+
+  <div class="card">
+    <h2 data-i18n="cl_patients"></h2>
+    <p class="small muted" data-i18n="cl_pick"></p>
+    <div class="row">
+      {% for w in wards %}<a class="btn ghost small" href="/r/{{ w.code }}"
+         data-name-en="{{ w.name }}" data-name-uz="{{ w.name_uz or '' }}" data-name-ru="{{ w.name_ru or '' }}">{{ w.name }}</a>{% endfor %}
+    </div>
+    {% if not wards %}<p class="note warn small" data-i18n="cl_none"></p>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="cl_staff"></h2>
+    <p class="small muted" data-i18n="s_sub"></p>
+    <a class="btn" href="/c/{{ clinic.slug }}/staff" data-i18n="cl_staff_btn"></a>
+  </div>
+
+  {% if tg %}
+  <div class="card">
+    <h2>Telegram</h2>
+    <a class="btn ghost" href="{{ tg }}" data-i18n="tg_open"></a>
+  </div>
+  {% endif %}
+
+  <p class="small"><a href="/case" data-i18n="cl_case"></a></p>
+  {% if is_clinic %}<p class="small"><a href="/dashboard">Dashboard</a> · <a href="/settings">Settings</a> · <a href="/qr">QR codes</a></p>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/i18n.js"></script>{% endblock %}

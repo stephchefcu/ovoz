@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Settings · {{ clinic.name }} · Ovoz{% endblock %}
+{% block nav %}<a href="/dashboard">Dashboard</a><a href="/qr">QR codes</a><a href="/logout">Log out</a>{% endblock %}
+{% block content %}
+<div class="wrap wide">
+  <h1 style="margin-bottom:2px">Settings</h1>
+  <p class="muted">{{ clinic.name }} · clinic code <code>{{ clinic.slug }}</code></p>
+
+  {% if new %}
+  <div class="note ok">
+    <b>Your clinic is ready.</b> Next: add your departments below, then print your QR codes.
+    Log in later with clinic code <code>{{ clinic.slug }}</code> and your password.
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2 style="margin-top:0">Departments</h2>
+    <p class="small muted">Patients and staff choose from these. Give each one a name in Uzbek and Russian too, so people
+      see it in their own language. "Group" is used for privacy: departments with very few reports are combined into
+      their group on the dashboard. Removing a department hides it from the forms and the bot; its past reports stay.</p>
+    <div style="overflow-x:auto">
+    <table id="wards">
+      <thead><tr><th>Name (English)</th><th>O'zbekcha</th><th>Русский</th><th>Group</th><th>Reports</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    </div>
+    <h3>Add a department</h3>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">
+      <input id="n_name" placeholder="Name (English) *" maxlength="80">
+      <input id="n_uz" placeholder="O'zbekcha nomi" maxlength="80">
+      <input id="n_ru" placeholder="Название по-русски" maxlength="80">
+      <input id="n_unit" placeholder="Group (e.g. Surgery)" maxlength="80">
+    </div>
+    <div id="w_err" class="note bad hidden"></div>
+    <div class="row" style="margin-top:10px"><button id="add">Add department</button></div>
+  </div>
+
+  <div class="grid two" style="margin-top:14px">
+    <div class="card">
+      <h2 style="margin-top:0">Clinic</h2>
+      <label for="c_name">Name</label>
+      <input id="c_name" maxlength="120" value="{{ clinic.name }}">
+      <label for="c_contact">Contact for patients <span class="small muted">(shown in the privacy terms)</span></label>
+      <input id="c_contact" maxlength="200" value="{{ clinic.contact or '' }}">
+      <div id="c_msg" class="note hidden"></div>
+      <div class="row" style="margin-top:10px"><button id="c_save">Save</button></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Links to share</h2>
+      <p class="small">Public page: <a href="/c/{{ clinic.slug }}">{{ base }}/c/{{ clinic.slug }}</a></p>
+      <p class="small">Staff reports: <a href="/c/{{ clinic.slug }}/staff">{{ base }}/c/{{ clinic.slug }}/staff</a></p>
+      <p class="small" id="botline"></p>
+      <p class="small"><a class="btn ghost small" href="/qr">Print QR codes</a></p>
+      <h3>Change password</h3>
+      <input type="password" id="p_cur" placeholder="Current password" autocomplete="current-password">
+      <input type="password" id="p_new" placeholder="New password (8+ characters)" autocomplete="new-password" style="margin-top:6px">
+      <div id="p_msg" class="note hidden"></div>
+      <div class="row" style="margin-top:10px"><button class="ghost" id="p_save">Change password</button></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const post = (url, body) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  function note(el, ok, msg) { el.className = "note " + (ok ? "ok" : "bad"); el.textContent = msg; }
+
+  async function load() {
+    const r = await fetch("/api/settings");
+    if (r.status === 401) { location.href = "/login"; return; }
+    const d = await r.json();
+    $("botline").innerHTML = d.bot
+      ? `Telegram: <a href="https://t.me/${esc(d.bot)}?start=c_${esc(d.clinic.slug)}">t.me/${esc(d.bot)}?start=c_${esc(d.clinic.slug)}</a> (opens the bot already set to your clinic)`
+      : "Telegram bot: not connected on this server.";
+    $("wards").querySelector("tbody").innerHTML = d.wards.length ? d.wards.map(w => `
+      <tr data-code="${esc(w.code)}" class="${w.active ? "" : "muted"}">
+        <td><input class="e_name" value="${esc(w.name)}" maxlength="80"></td>
+        <td><input class="e_uz" value="${esc(w.name_uz)}" maxlength="80"></td>
+        <td><input class="e_ru" value="${esc(w.name_ru)}" maxlength="80"></td>
+        <td><input class="e_unit" value="${esc(w.unit)}" maxlength="80"></td>
+        <td>${w.reports}</td>
+        <td style="white-space:nowrap">
+          <button class="small save">Save</button>
+          ${w.active ? `<button class="small ghost toggle" data-active="0">Remove</button>`
+                     : `<button class="small ghost toggle" data-active="1">Restore</button>`}
+          ${w.active ? `<a class="small" href="/r/${esc(w.code)}" target="_blank">open</a>` : `<span class="small">removed</span>`}
+        </td>
+      </tr>`).join("") : `<tr><td colspan="6" class="muted">No departments yet. Add your first one below.</td></tr>`;
+    document.querySelectorAll("#wards tbody tr[data-code]").forEach(tr => {
+      const val = c => tr.querySelector(c).value;
+      const body = active => ({ name: val(".e_name"), name_uz: val(".e_uz"), name_ru: val(".e_ru"), unit: val(".e_unit"), active });
+      const isActive = !tr.classList.contains("muted");
+      tr.querySelector(".save").addEventListener("click", async () => {
+        const r = await post("/api/wards/" + tr.dataset.code, body(isActive));
+        r.ok ? load() : alert("Could not save. The English name needs at least 2 characters.");
+      });
+      tr.querySelector(".toggle").addEventListener("click", async e => {
+        const active = e.target.dataset.active === "1";
+        if (!active && !confirm("Remove this department from the forms and the bot? Its past reports are kept.")) return;
+        (await post("/api/wards/" + tr.dataset.code, body(active))).ok ? load() : alert("Could not change it.");
+      });
+    });
+  }
+
+  $("add").addEventListener("click", async () => {
+    $("w_err").classList.add("hidden");
+    const b = { name: $("n_name").value.trim(), name_uz: $("n_uz").value.trim(), name_ru: $("n_ru").value.trim(), unit: $("n_unit").value.trim() };
+    if (b.name.length < 2) { $("w_err").textContent = "Please enter the English name."; $("w_err").classList.remove("hidden"); return; }
+    const r = await post("/api/wards", b);
+    if (!r.ok) { $("w_err").textContent = "Could not add the department."; $("w_err").classList.remove("hidden"); return; }
+    ["n_name", "n_uz", "n_ru", "n_unit"].forEach(id => $(id).value = "");
+    load();
+  });
+  $("c_save").addEventListener("click", async () => {
+    const r = await post("/api/settings/clinic", { name: $("c_name").value, contact: $("c_contact").value });
+    note($("c_msg"), r.ok, r.ok ? "Saved." : "The name needs at least 3 characters.");
+  });
+  $("p_save").addEventListener("click", async () => {
+    const r = await post("/api/settings/password", { current: $("p_cur").value, new: $("p_new").value });
+    note($("p_msg"), r.ok, r.ok ? "Password changed." : (r.status === 400 ? "The current password is wrong." : "The new password needs at least 8 characters."));
+    if (r.ok) { $("p_cur").value = ""; $("p_new").value = ""; }
+  });
+  load();
+</script>
+{% endblock %}

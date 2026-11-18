@@ -38,6 +38,10 @@ AISHA_API_KEY = "" if _aisha_or_vlk.startswith("vlk_") else _aisha_or_vlk
 AISHA_BASE = env("AISHA_BASE_URL", "https://back.aisha.group").rstrip("/")
 
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
+TELEGRAM_BOT_USERNAME = env("TELEGRAM_BOT_USERNAME").lstrip("@")  # optional; found from the token if empty
+
+# If set, new clinics must enter this code to sign up (stops strangers creating clinics on a public demo).
+SIGNUP_CODE = env("SIGNUP_CODE")
 
 # Shown in the Terms & Privacy text. PUBLIC_URL lets the bot link to the /privacy page (optional).
 CLINIC_NAME = env("CLINIC_NAME")

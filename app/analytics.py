@@ -39,15 +39,17 @@ def week_start(day: str) -> str:
     return (d - timedelta(days=d.weekday())).isoformat()
 
 
-def load_wards(conn):
-    return {r["code"]: {"name": r["name"], "unit": r["unit"]} for r in conn.execute("SELECT * FROM wards")}
+def load_wards(conn, clinic_id):
+    return {r["code"]: {"name": r["name"], "unit": r["unit"]}
+            for r in conn.execute("SELECT * FROM wards WHERE clinic_id=?", (clinic_id,))}
 
 
-def window_reports(conn):
+def window_reports(conn, clinic_id):
+    """Released reports of ONE clinic in the dashboard window."""
     cutoff = (date.today() - timedelta(days=config.WINDOW_DAYS)).isoformat()
     rows = conn.execute(
-        "SELECT * FROM reports WHERE release_at <= ? AND created_day >= ? ORDER BY id DESC",
-        (now_utc_iso(), cutoff),
+        "SELECT * FROM reports WHERE clinic_id = ? AND release_at <= ? AND created_day >= ? ORDER BY id DESC",
+        (clinic_id, now_utc_iso(), cutoff),
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -84,9 +86,9 @@ def _public_day(r):
     return "week of " + week_start(r["created_day"])
 
 
-def build_dashboard(conn):
-    wards = load_wards(conn)
-    reports = window_reports(conn)
+def build_dashboard(conn, clinic_id):
+    wards = load_wards(conn, clinic_id)
+    reports = window_reports(conn, clinic_id)
     lab = Labeler(wards, reports)
 
     # ---- clusters (place + theme) ------------------------------------------------------
@@ -167,7 +169,8 @@ def build_dashboard(conn):
     feed = [feed_item(r) for r in reports[:25]]
 
     # ---- actions -----------------------------------------------------------------------
-    actions = [dict(a) for a in conn.execute("SELECT * FROM actions ORDER BY status ASC, id DESC")]
+    actions = [dict(a) for a in conn.execute(
+        "SELECT * FROM actions WHERE clinic_id=? ORDER BY status ASC, id DESC", (clinic_id,))]
 
     return {
         "kpi": {
@@ -192,11 +195,11 @@ def build_dashboard(conn):
     }
 
 
-def cluster_inputs(conn, key: str):
+def cluster_inputs(conn, clinic_id, key: str):
     """Texts of a cluster (masked patient texts, staff summaries) for root-cause help."""
     label, theme = key.rsplit("|", 1)
-    wards = load_wards(conn)
-    reports = window_reports(conn)
+    wards = load_wards(conn, clinic_id)
+    reports = window_reports(conn, clinic_id)
     lab = Labeler(wards, reports)
     mine = [r for r in reports if r["theme"] == theme and lab.label(r["ward_code"])[0] == label]
     patients = [r["text_masked"] for r in mine if r["source"] == "patient"]

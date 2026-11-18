@@ -77,6 +77,11 @@ ward = codes["Therapy ward"]
 msg("/start")
 check("start asks for language", api.buttons() == ["lang:uz", "lang:ru", "lang:en"])
 press("lang:ru")
+check("without a QR link the bot asks which clinic", "Какая клиника" in api.last()["text"])
+msg("no-such-clinic")
+check("unknown clinic code refused", "не найдена" in api.last()["text"])
+msg("demo")
+check("typed clinic code accepted", any("Demo clinic" in p["text"] for p in api.sent()[-2:]))
 check("privacy note shown (Russian)", any("Что мы сохраняем" in p["text"] for p in api.sent()))
 check("role choice offered", api.buttons() == ["role:patient", "role:staff", "role:case"])
 press("role:patient")
@@ -95,7 +100,7 @@ check("typed correction replaces the draft", "ждали два часа" in car
 check("review shows the MASKED text, not the name or phone",
       "[NAME]" in card and "[PHONE]" in card and "Гульнара" not in card and "901234567" not in card)
 check("review lists every field that is sent",
-      all(x in card for x in ("Терапевтическое отделение", "пациент или родственник", "Оценка: 4★", "Дата:", "Язык: Русский")))
+      all(x in card for x in ("Клиника: Demo clinic", "Терапевтическое отделение", "пациент или родственник", "Оценка: 4★", "Дата:", "Язык: Русский")))
 check("review says what is NOT sent and asks for agreement",
       "Не отправляется" in card and "/privacy" in card and api.buttons() == ["send", "cancel"])
 msg("/privacy")
@@ -115,7 +120,7 @@ check("agreed terms version recorded", r and r["terms_version"] == terms.TERMS_V
 check("session forgotten after sending", CHAT not in bot.sessions)
 
 # ---- staff: near miss, typed ----------------------------------------------------------------
-msg("/start"); press("lang:uz"); press("role:staff")
+msg("/start c_demo"); press("lang:uz"); press("role:staff")
 labels = [b["text"] for row in api.last()["reply_markup"]["inline_keyboard"] for b in row]
 check("department names shown in Uzbek", "Terapiya bo'limi" in labels and "Therapy ward" not in labels)
 press("ward:" + ward)
@@ -159,7 +164,7 @@ msg("/start", chat=-100123, ctype="group")
 check("group chats ignored", len(api.calls) == n)
 msg("hello", chat=777)
 check("no session -> asks to /start", "/start" in api.last()["text"])
-msg("/start", chat=778); press("lang:en", chat=778); press("role:patient", chat=778); press("ward:" + ward, chat=778)
+msg("/start c_demo", chat=778); press("lang:en", chat=778); press("role:patient", chat=778); press("ward:" + ward, chat=778)
 press("rate:skip", chat=778)
 msg(chat=778, voice={"file_id": "LONG", "duration": 600, "mime_type": "audio/ogg"})
 check("long voice message refused", "too long" in api.last()["text"] and "LONG" not in api.downloads)
@@ -174,6 +179,37 @@ check("cancel ends the session", 778 not in bot.sessions)
 with db() as conn:
     cols = [c[1] for c in conn.execute("PRAGMA table_info(reports)")]
 check("no chat id or username column exists", not any(c in cols for c in ("chat_id", "user_id", "username")))
+
+# ---- one bot, many clinics ----------------------------------------------------------------
+from app import clinics  # noqa: E402
+with db() as conn:
+    other = clinics.create(conn, "Other Clinic", "other", "otherpass1")
+    other_ward = clinics.add_ward(conn, other, "Cardiology", "Kardiologiya bo'limi", "Кардиология", "Cardiology")
+C2 = 900100
+msg("/start w_" + other_ward, chat=C2)
+check("ward QR link names the clinic", "Other Clinic" in api.last()["text"])
+press("lang:uz", chat=C2)
+check("ward QR link skips the clinic question", api.buttons() == ["role:patient", "role:staff", "role:case"])
+press("role:patient", chat=C2)
+check("ward QR link skips the department question", "rate:skip" in api.buttons())
+press("rate:5", chat=C2)
+msg("Qabulxonada navbat juda uzun edi.", chat=C2)
+card2 = api.last()["text"]
+check("review shows the right clinic and department", "Klinika: Other Clinic" in card2 and "Kardiologiya bo'limi" in card2)
+press("send", chat=C2)
+with db() as conn:
+    rr = conn.execute("SELECT clinic_id, ward_code FROM reports WHERE text_masked LIKE 'Qabulxonada%'").fetchone()
+check("report saved for that clinic", rr and rr["clinic_id"] == other and rr["ward_code"] == other_ward)
+C3 = 900200
+msg("/start c_other", chat=C3); press("lang:ru", chat=C3); press("role:staff", chat=C3)
+check("clinic QR link offers only that clinic's departments",
+      api.buttons() == ["ward:" + other_ward] and "ward:" + ward not in api.buttons())
+press("ward:" + ward, chat=C3)  # a demo-clinic department, not offered: must be refused
+check("another clinic's department is refused", "Ошибка" in api.last()["text"] and bot.sessions[C3].ward == "")
+with db() as conn:
+    clinics.update_ward(conn, other, other_ward, "Cardiology", "", "", "Cardiology", False)
+msg("/start w_" + other_ward, chat=900300); press("lang:en", chat=900300)
+check("removed department's QR link falls back to asking the clinic", "Which clinic" in api.last()["text"])
 
 # ---- token never appears in errors ------------------------------------------------------------
 real = tb.TelegramApi("123456:SECRET-TOKEN-VALUE")

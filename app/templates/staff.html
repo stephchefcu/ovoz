@@ -6,6 +6,7 @@
 {% block content %}
 <div class="wrap">
   <div id="form">
+    <div class="small muted">{{ clinic.name }}</div>
     <h1 data-i18n="s_title"></h1>
     <p class="muted" data-i18n="s_sub"></p>
 
@@ -37,6 +38,7 @@
       <div class="row" style="margin-top:12px"><button id="send" data-i18n="submit"></button></div>
     </div>
 
+    {% if tg %}<p class="small"><a class="btn ghost small tgbtn" href="{{ tg }}" data-i18n="tg_open"></a></p>{% endif %}
     <div class="card soft privacy">
       <h3 data-i18n="priv_title"></h3>
       <ul>
@@ -64,6 +66,8 @@
 <script src="/static/review.js"></script>
 <script>
   const TERMS_VERSION = {{ TERMS_VERSION|tojson }};
+  const PRIVACY_URL = "/privacy?c=" + encodeURIComponent({{ clinic.slug|tojson }});
+  const CLINIC_NAME = {{ clinic.name|tojson }};
   const $ = id => document.getElementById(id);
   document.addEventListener("DOMContentLoaded", () => {
     setupRecorder({ button: $("recbtn"), status: $("recstatus"), textarea: $("text") });
@@ -84,6 +88,7 @@
     showReview({
       box: $("review"), hide: [$("form")], masked: p.masked,
       rows: () => [
+        [t("rv_clinic"), CLINIC_NAME],
         [t("p_ward"), selText("ward")],
         [t("rv_role"), t("role_staff")],
         [t("rv_type"), selText("type")],

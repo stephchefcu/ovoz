@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Clinic dashboard{% endblock %}
-{% block nav %}<a href="/qr">QR codes</a><a href="/staff">Staff form</a><a href="/logout">Log out</a>{% endblock %}
+{% block title %}{{ clinic.name }} · Ovoz{% endblock %}
+{% block nav %}<a href="/settings">Settings</a><a href="/qr">QR codes</a><a href="/c/{{ clinic.slug }}">Public page</a><a href="/logout">Log out</a>{% endblock %}
 {% block content %}
 <div class="wrap wide">
   <div class="row" style="justify-content:space-between">
-    <h1>Clinic dashboard</h1>
+    <div><h1 style="margin-bottom:2px">{{ clinic.name }}</h1><div class="small muted">Dashboard · clinic code <code>{{ clinic.slug }}</code></div></div>
     <div class="small muted" id="mode"></div>
   </div>
   <div class="note info small" id="privnote"></div>

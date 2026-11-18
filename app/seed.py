@@ -10,7 +10,7 @@ import random
 import secrets
 from datetime import date, datetime, timedelta, timezone
 
-from . import ai, analytics
+from . import ai, analytics, clinics, config
 from .db import db, init_db
 from .util import hash_code
 
@@ -93,13 +93,21 @@ def seed(reset: bool = True):
     rng = random.Random(42)
     with db() as conn:
         if reset:
-            for t in ("case_messages", "actions", "reports", "wards"):
-                conn.execute(f"DELETE FROM {t}")
+            # Only the demo clinic is reset; other clinics' data is never touched.
+            old = clinics.by_slug(conn, "demo")
+            if old:
+                conn.execute("DELETE FROM case_messages WHERE case_hash IN "
+                             "(SELECT case_hash FROM reports WHERE clinic_id=?)", (old["id"],))
+                for t in ("actions", "reports", "wards"):
+                    conn.execute(f"DELETE FROM {t} WHERE clinic_id=?", (old["id"],))
+        demo = clinics.by_slug(conn, "demo")
+        cid = demo["id"] if demo else clinics.create(conn, config.CLINIC_NAME or "Demo clinic", "demo",
+                                                     config.CLINIC_PASSWORD, config.CLINIC_CONTACT)
         codes = {}
         for name, unit in WARDS:
             code = secrets.token_urlsafe(6)
             codes[name] = code
-            conn.execute("INSERT INTO wards (code, name, unit) VALUES (?,?,?)", (code, name, unit))
+            conn.execute("INSERT INTO wards (code, name, unit, clinic_id) VALUES (?,?,?,?)", (code, name, unit, cid))
         fill_ward_translations(conn)
 
         demo_done = False
@@ -116,11 +124,11 @@ def seed(reset: bool = True):
                 code = f"{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}"
             conn.execute(
                 "INSERT INTO reports (source, ward_code, text_masked, summary, category, theme, severity, urgent, "
-                "near_miss, rating, lang, created_day, time_bucket, release_at, case_hash) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "near_miss, rating, lang, created_day, time_bucket, release_at, case_hash, clinic_id) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (source, codes[ward], res["masked"], res["summary"], res["category"], res["theme"], res["severity"],
                  int(res["urgent"]), int(res["near_miss"]), rng.randint(1, 2) if source == "patient" else None, lang,
-                 created, _bucket(rng, night), "2000-01-01T00:00:00", hash_code(code)),
+                 created, _bucket(rng, night), "2000-01-01T00:00:00", hash_code(code), cid),
             )
             if code == DEMO_CODE:
                 conn.execute("INSERT INTO case_messages (case_hash, sender, body, created_day) VALUES (?,?,?,?)",
@@ -130,20 +138,20 @@ def seed(reset: bool = True):
 
         today = date.today()
         conn.execute(
-            "INSERT INTO actions (theme, scope_unit, title, cause, owner, due, public_text, status, created_day, done_day) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO actions (theme, scope_unit, title, cause, owner, due, public_text, status, created_day, done_day, "
+            "clinic_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             ("continuity", "Surgery department", "Introduce a short structured handover checklist at every shift change.",
              "Handover between shifts was informal.", "Head nurse, Surgery",
              (today - timedelta(days=10)).isoformat(),
              "A structured handover checklist is now used at every shift change.", "done",
-             (today - timedelta(days=24)).isoformat(), (today - timedelta(days=12)).isoformat()),
+             (today - timedelta(days=24)).isoformat(), (today - timedelta(days=12)).isoformat(), cid),
         )
         conn.execute(
-            "INSERT INTO actions (theme, scope_unit, title, cause, owner, due, public_text, status, created_day) "
-            "VALUES (?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO actions (theme, scope_unit, title, cause, owner, due, public_text, status, created_day, "
+            "clinic_id) VALUES (?,?,?,?,?,?,?,?,?,?)",
             ("continuity", "Surgery department", "Review night-shift staffing against patient load.",
              "Night cover is thin.", "Deputy director", (today + timedelta(days=7)).isoformat(),
-             "Night staffing is being reviewed.", "open", today.isoformat()),
+             "Night staffing is being reviewed.", "open", today.isoformat(), cid),
         )
     return codes
 
@@ -152,5 +160,6 @@ if __name__ == "__main__":
     codes = seed()
     print("Seeded demo data.")
     print(f"Demo case code (has a clinic question waiting): {DEMO_CODE}")
+    print("Demo clinic: code demo, password = CLINIC_PASSWORD from .env (a new demo clinic only)")
     for name, code in codes.items():
         print(f"  {name}: /r/{code}")

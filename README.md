@@ -6,6 +6,10 @@ Anonymous reporting for clinics, covering hackathon items 7 (staff report errors
 anonymous feedback). Patients and staff speak up in Uzbek or Russian, by voice or text. AI masks personal details, sorts
 reports, links patient and staff reports about the same ward, and helps find root causes. Only the clinic sees the data.
 
+**One Ovoz for many clinics.** Each clinic signs up, adds its own departments (in Uzbek, Russian and English), prints its
+own QR codes and sees only its own reports. One website and one Telegram bot serve every clinic: a department's QR code
+opens the web form or the bot already set to that clinic and department.
+
 ## Quick start
 
 ```bash
@@ -16,7 +20,8 @@ python -m app.seed                                     # loads synthetic demo da
 uvicorn app.main:app --reload --port 8000
 ```
 
-Open http://localhost:8000. Clinic login password: `demo` (change `CLINIC_PASSWORD` in `.env`).
+Open http://localhost:8000. Demo clinic login: clinic code `demo`, password `CLINIC_PASSWORD` from `.env` (`demo` by
+default). New clinics sign up at `/signup`.
 Telegram bot (optional, in a second terminal): `python -m app.telegram_bot` (needs `TELEGRAM_BOT_TOKEN`).
 Tests: `python tests/smoke_test.py` and `python tests/telegram_bot_test.py` (both run in demo mode, no keys used).
 
@@ -26,13 +31,17 @@ The app runs with **no keys at all**: voice returns a sample transcript and AI t
 
 | Page | Who | What |
 |---|---|---|
+| `/` | everyone | What Ovoz is; clinic sign-up and login |
+| `/c/{clinic_code}` | patients, staff | A clinic's page: its departments, the staff form, its Telegram link |
 | `/r/{ward_code}` | patients, relatives | Anonymous feedback by voice or text (the QR code points here), uz / ru / en |
-| `/staff` | staff | Anonymous report of a mistake or near-miss, voice or text |
+| `/c/{clinic_code}/staff` | staff | Anonymous report of a mistake or near-miss, voice or text |
 | `/case` | reporter | Enter the case code to read clinic questions and reply anonymously |
-| `/login`, `/dashboard` | clinic | Linked problems, urgent items, early-warning radar, action tracker, latest reports |
-| `/qr` | clinic | Printable QR codes, one per ward |
+| `/signup`, `/login` | clinic | Create a clinic (name, clinic code, password); log in with clinic code + password |
+| `/settings` | clinic | Departments (add, rename in uz / ru / en, group, remove), clinic name and contact, password, links |
+| `/dashboard` | clinic | Linked problems, urgent items, early-warning radar, action tracker, latest reports (this clinic only) |
+| `/qr` | clinic | Printable QR codes: one per department (web + Telegram) and a staff-room poster |
 | `/board/{ward_code}` | ward screen | "You said, we did": completed actions shown to patients and staff |
-| Telegram bot | patients, staff | Same reports by voice message or text: language → patient / staff → ward → rating or harm → message → check → send. `/case` reads clinic questions and replies |
+| Telegram bot | patients, staff | One bot for all clinics. A QR link (`?start=w_<ward>` or `c_<clinic>`) sets the clinic and department; otherwise it asks for the clinic code. Then language → patient / staff → department → rating or harm → message → check → send. `/case` reads clinic questions and replies |
 
 ## Connect the real services
 
@@ -79,8 +88,7 @@ Without it, rules are used.
   patronymics, phones, times and rooms. They do not catch every name. For real use add a language-model or NER pass and
   review what is stored.
 - Keyword triage is simple. It works for the demo; accuracy needs real data and testing.
-- **Not built:** multiple clinics with separate data (one clinic only),
-  user accounts and roles (one shared password), HTTPS and backups. Add these before any real use.
+- **Not built:** user accounts and roles inside a clinic (one shared password per clinic), password reset, HTTPS and backups. Add these before any real use.
 - Clinic logins are kept in server memory: restarting the server logs everyone out, and the app must run as a single
   process (no `--workers`). Set `SESSION_SECRET` to a long random value before real use and keep it fixed afterwards,
   because case codes are checked against it.
@@ -94,6 +102,7 @@ Without it, rules are used.
 
 ```
 app/main.py        routes (public pages, report API, case follow-up, clinic dashboard API)
+app/clinics.py     clinics (sign-up, login, settings) and their departments
 app/reports.py     saving reports and the case thread (shared by the web app and the bot)
 app/terms.py       Terms of use and privacy (uz / ru / en) and TERMS_VERSION
 app/static/review.js  the "check what will be sent, then agree" step on the web pages

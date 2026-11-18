@@ -8,15 +8,16 @@ from datetime import date
 from pathlib import Path
 from typing import Optional
 
+import httpx
 import segno
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
-from . import ai, analytics, config, reports, terms, voice
+from . import ai, analytics, clinics, config, reports, terms, voice
 from .db import db, init_db
 
 APP_DIR = Path(__file__).resolve().parent
@@ -51,39 +52,81 @@ def rate_limited(request: Request, bucket: str, limit: int = 6, window: int = 60
     return False
 
 
-# Clinic login sessions: a fresh random token per login, kept in memory only.
+# Clinic login sessions: a fresh random token per login -> (clinic id, expiry), kept in memory only.
 # Logging out (or restarting the server) ends the session. Run a single worker process.
 SESSION_TTL = 60 * 60 * 12
 _SESSIONS: dict = {}
 
 
-def _new_session() -> str:
+def _new_session(clinic_id: int) -> str:
     now = time.time()
-    for tok, exp in list(_SESSIONS.items()):
+    for tok, (_, exp) in list(_SESSIONS.items()):
         if exp < now:
             _SESSIONS.pop(tok, None)
     tok = secrets.token_urlsafe(32)
-    _SESSIONS[tok] = now + SESSION_TTL
+    _SESSIONS[tok] = (clinic_id, now + SESSION_TTL)
     return tok
 
 
-def is_clinic(request: Request) -> bool:
+def _login_response(clinic_id: int, to: str):
+    resp = RedirectResponse(to, status_code=303)
+    resp.set_cookie("clinic_session", _new_session(clinic_id), httponly=True, samesite="strict", max_age=SESSION_TTL)
+    return resp
+
+
+def current_clinic(request: Request) -> Optional[int]:
+    """The logged-in clinic's id, or None."""
     got = request.cookies.get("clinic_session", "")
-    exp = _SESSIONS.get(got) if got else None
-    if exp is None:
-        return False
-    if exp < time.time():
+    entry = _SESSIONS.get(got) if got else None
+    if entry is None:
+        return None
+    if entry[1] < time.time():
         _SESSIONS.pop(got, None)
-        return False
-    return True
+        return None
+    return entry[0]
 
 
-def require_clinic(request: Request):
-    if not is_clinic(request):
+def require_clinic(request: Request) -> int:
+    cid = current_clinic(request)
+    if cid is None:
         raise HTTPException(status_code=401, detail="login required")
+    return cid
 
 
-ward_list = reports.ward_list
+_BOT = {"name": None, "checked": 0.0}
+
+
+def bot_username() -> Optional[str]:
+    """The Telegram bot's username, for t.me deep links (from .env, or asked from Telegram once)."""
+    if config.TELEGRAM_BOT_USERNAME:
+        return config.TELEGRAM_BOT_USERNAME
+    if not config.TELEGRAM_BOT_TOKEN or _BOT["name"] or time.time() - _BOT["checked"] < 300:
+        return _BOT["name"]
+    _BOT["checked"] = time.time()
+    try:
+        r = httpx.get(f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}/getMe", timeout=5)
+        _BOT["name"] = r.json()["result"]["username"]
+    except Exception:
+        pass
+    return _BOT["name"]
+
+
+def tg_link(payload: str) -> Optional[str]:
+    name = bot_username()
+    return f"https://t.me/{name}?start={payload}" if name else None
+
+
+def qr_svg(url: str, scale: int = 6) -> str:
+    buf = io.BytesIO()
+    segno.make(url, error="m").save(buf, kind="svg", scale=scale, border=2, xmldecl=False, svgns=True)
+    return buf.getvalue().decode()
+
+
+def _clinic_or_404(conn, slug: str) -> dict:
+    c = clinics.by_slug(conn, slug)
+    if not c:
+        raise HTTPException(404, "unknown clinic")
+    return c
 
 
 # --------------------------------------------------------------------------------------
@@ -92,30 +135,54 @@ ward_list = reports.ward_list
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     with db() as conn:
-        wards = ward_list(conn)
-    return templates.TemplateResponse(request, "home.html", {"wards": wards, "is_clinic": is_clinic(request)})
+        demo = clinics.by_slug(conn, "demo")
+    return templates.TemplateResponse(request, "home.html", {
+        "demo": demo, "is_clinic": current_clinic(request) is not None, "bot": bot_username()})
+
+
+@app.get("/c/{slug}", response_class=HTMLResponse)
+def clinic_page(request: Request, slug: str):
+    """A clinic's public start page: its departments, the staff form and the Telegram bot."""
+    with db() as conn:
+        c = _clinic_or_404(conn, slug)
+        wards = reports.ward_list(conn, c["id"])
+    return templates.TemplateResponse(request, "clinic.html", {
+        "clinic": c, "wards": wards, "tg": tg_link("c_" + c["slug"]),
+        "is_clinic": current_clinic(request) == c["id"]})
 
 
 @app.get("/r/{ward_code}", response_class=HTMLResponse)
 def patient_page(request: Request, ward_code: str):
     with db() as conn:
-        w = conn.execute("SELECT * FROM wards WHERE code=?", (ward_code,)).fetchone()
-    if not w:
-        raise HTTPException(404, "unknown ward code")
-    return templates.TemplateResponse(request, "patient.html", {"ward": dict(w)})
+        w = reports.get_ward(conn, ward_code)
+        if not w:
+            raise HTTPException(404, "unknown ward code")
+        c = clinics.get(conn, w["clinic_id"])
+    return templates.TemplateResponse(request, "patient.html",
+                                      {"ward": w, "clinic": c, "tg": tg_link("w_" + w["code"])})
 
 
-@app.get("/staff", response_class=HTMLResponse)
-def staff_page(request: Request):
+@app.get("/c/{slug}/staff", response_class=HTMLResponse)
+def staff_page(request: Request, slug: str):
     with db() as conn:
-        wards = ward_list(conn)
-    return templates.TemplateResponse(request, "staff.html", {"wards": wards})
+        c = _clinic_or_404(conn, slug)
+        wards = reports.ward_list(conn, c["id"])
+    return templates.TemplateResponse(request, "staff.html", {"wards": wards, "clinic": c,
+                                                              "tg": tg_link("c_" + c["slug"])})
+
+
+@app.get("/staff")
+def staff_redirect():
+    """Old link: staff forms now belong to a clinic."""
+    return RedirectResponse("/c/demo/staff", status_code=303)
 
 
 @app.get("/privacy", response_class=HTMLResponse)
-def privacy_page(request: Request):
-    return templates.TemplateResponse(request, "privacy.html",
-                                      {"texts": [terms.terms(lang) for lang in ("uz", "ru", "en")]})
+def privacy_page(request: Request, c: str = ""):
+    with db() as conn:
+        clinic = clinics.by_slug(conn, c) if c else None
+    return templates.TemplateResponse(request, "privacy.html", {
+        "clinic": clinic, "texts": [terms.terms(lang, clinic) for lang in ("uz", "ru", "en")]})
 
 
 @app.get("/case", response_class=HTMLResponse)
@@ -126,15 +193,15 @@ def case_page(request: Request):
 @app.get("/board/{ward_code}", response_class=HTMLResponse)
 def board_page(request: Request, ward_code: str):
     with db() as conn:
-        w = conn.execute("SELECT * FROM wards WHERE code=?", (ward_code,)).fetchone()
+        w = reports.get_ward(conn, ward_code)
         if not w:
             raise HTTPException(404, "unknown ward code")
         rows = conn.execute(
-            "SELECT * FROM actions WHERE status='done' AND (scope_unit=? OR scope_unit='All') "
+            "SELECT * FROM actions WHERE clinic_id=? AND status='done' AND (scope_unit=? OR scope_unit='All') "
             "ORDER BY done_day DESC, id DESC LIMIT 12",
-            (w["unit"],),
+            (w["clinic_id"], w["unit"]),
         ).fetchall()
-    return templates.TemplateResponse(request, "board.html", {"ward": dict(w), "actions": [dict(r) for r in rows]})
+    return templates.TemplateResponse(request, "board.html", {"ward": w, "actions": [dict(r) for r in rows]})
 
 
 # --------------------------------------------------------------------------------------
@@ -232,20 +299,60 @@ def case_reply(body: CaseReply, request: Request):
 
 
 # --------------------------------------------------------------------------------------
-# Clinic login + dashboard
+# Clinic sign-up, login, settings
 # --------------------------------------------------------------------------------------
+@app.get("/signup", response_class=HTMLResponse)
+def signup_page(request: Request):
+    return templates.TemplateResponse(request, "signup.html", {"error": "", "form": {},
+                                                               "need_code": bool(config.SIGNUP_CODE)})
+
+
+@app.post("/signup")
+def signup(request: Request, name: str = Form(...), slug: str = Form(""), contact: str = Form(""),
+           password: str = Form(...), password2: str = Form(...), signup_code: str = Form("")):
+    form = {"name": name, "slug": slug, "contact": contact}
+
+    def fail(msg):
+        return templates.TemplateResponse(request, "signup.html", {"error": msg, "form": form,
+                                                                   "need_code": bool(config.SIGNUP_CODE)},
+                                          status_code=400)
+
+    if rate_limited(request, "signup", limit=5, window=3600):
+        return fail("Too many sign-ups from this connection. Try again later.")
+    if config.SIGNUP_CODE and not hmac.compare_digest(signup_code.strip(), config.SIGNUP_CODE):
+        return fail("Wrong sign-up code.")
+    name = name.strip()
+    slug = (slug.strip().lower() or clinics.slugify(name))
+    if len(name) < 3:
+        return fail("Please enter the clinic's name.")
+    if not clinics.valid_slug(slug):
+        return fail("The clinic code may use only latin letters, digits and dashes (3 to 30 characters).")
+    if len(password) < 8:
+        return fail("The password must be at least 8 characters.")
+    if password != password2:
+        return fail("The two passwords are different.")
+    with db() as conn:
+        if clinics.slug_taken(conn, slug):
+            form["slug"] = slug
+            return fail(f"The clinic code “{slug}” is taken. Please choose another one.")
+        cid = clinics.create(conn, name, slug, password, contact)
+    return _login_response(cid, "/settings?new=1")
+
+
 @app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html", {"error": False})
+def login_page(request: Request, c: str = ""):
+    return templates.TemplateResponse(request, "login.html", {"error": False, "slug": c})
 
 
 @app.post("/login")
-def login(request: Request, password: str = Form(...)):
-    if not hmac.compare_digest(password, config.CLINIC_PASSWORD):
-        return templates.TemplateResponse(request, "login.html", {"error": True}, status_code=401)
-    resp = RedirectResponse("/dashboard", status_code=303)
-    resp.set_cookie("clinic_session", _new_session(), httponly=True, samesite="strict", max_age=SESSION_TTL)
-    return resp
+def login(request: Request, clinic: str = Form(""), password: str = Form(...)):
+    if rate_limited(request, "login", limit=10):
+        return templates.TemplateResponse(request, "login.html", {"error": True, "slug": clinic}, status_code=429)
+    with db() as conn:
+        c = clinics.check_login(conn, clinic, password)
+    if not c:
+        return templates.TemplateResponse(request, "login.html", {"error": True, "slug": clinic}, status_code=401)
+    return _login_response(c["id"], "/dashboard")
 
 
 @app.get("/logout")
@@ -256,18 +363,95 @@ def logout(request: Request):
     return resp
 
 
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request, new: int = 0):
+    cid = current_clinic(request)
+    if cid is None:
+        return RedirectResponse("/login", status_code=303)
+    with db() as conn:
+        c = clinics.get(conn, cid)
+    return templates.TemplateResponse(request, "settings.html", {"clinic": c, "new": bool(new),
+                                                                 "base": str(request.base_url).rstrip("/")})
+
+
+@app.get("/api/settings")
+def api_settings(request: Request):
+    cid = require_clinic(request)
+    with db() as conn:
+        return {"clinic": clinics.get(conn, cid), "wards": clinics.wards(conn, cid, include_inactive=True),
+                "bot": bot_username()}
+
+
+class ClinicIn(BaseModel):
+    name: str = Field(min_length=3, max_length=120)
+    contact: str = Field(default="", max_length=200)
+
+
+@app.post("/api/settings/clinic")
+def api_settings_clinic(body: ClinicIn, request: Request):
+    cid = require_clinic(request)
+    with db() as conn:
+        clinics.update(conn, cid, body.name, body.contact)
+    return {"ok": True}
+
+
+class PasswordIn(BaseModel):
+    current: str
+    new: str = Field(min_length=8, max_length=200)
+
+
+@app.post("/api/settings/password")
+def api_settings_password(body: PasswordIn, request: Request):
+    cid = require_clinic(request)
+    with db() as conn:
+        if not clinics.password_ok(conn, cid, body.current):
+            raise HTTPException(400, "wrong current password")
+        clinics.set_password(conn, cid, body.new)
+    return {"ok": True}
+
+
+class WardIn(BaseModel):
+    name: str = Field(min_length=2, max_length=80)        # English / default name (dashboard)
+    name_uz: str = Field(default="", max_length=80)
+    name_ru: str = Field(default="", max_length=80)
+    unit: str = Field(default="", max_length=80)           # department group used for privacy roll-up
+    active: bool = True
+
+
+@app.post("/api/wards")
+def api_ward_add(body: WardIn, request: Request):
+    cid = require_clinic(request)
+    with db() as conn:
+        return {"code": clinics.add_ward(conn, cid, body.name, body.name_uz, body.name_ru, body.unit)}
+
+
+@app.post("/api/wards/{code}")
+def api_ward_update(code: str, body: WardIn, request: Request):
+    cid = require_clinic(request)
+    with db() as conn:
+        if not clinics.update_ward(conn, cid, code, body.name, body.name_uz, body.name_ru, body.unit, body.active):
+            raise HTTPException(404, "department not found")
+    return {"ok": True}
+
+
+# --------------------------------------------------------------------------------------
+# Clinic dashboard (every query is limited to the logged-in clinic)
+# --------------------------------------------------------------------------------------
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard_page(request: Request):
-    if not is_clinic(request):
+    cid = current_clinic(request)
+    if cid is None:
         return RedirectResponse("/login", status_code=303)
-    return templates.TemplateResponse(request, "dashboard.html", {})
+    with db() as conn:
+        c = clinics.get(conn, cid)
+    return templates.TemplateResponse(request, "dashboard.html", {"clinic": c})
 
 
 @app.get("/api/dashboard")
 def api_dashboard(request: Request):
-    require_clinic(request)
+    cid = require_clinic(request)
     with db() as conn:
-        return analytics.build_dashboard(conn)
+        return analytics.build_dashboard(conn, cid)
 
 
 class RcaIn(BaseModel):
@@ -276,9 +460,9 @@ class RcaIn(BaseModel):
 
 @app.post("/api/clusters/rca")
 def api_rca(body: RcaIn, request: Request):
-    require_clinic(request)
+    cid = require_clinic(request)
     with db() as conn:
-        label, unit, theme, patients, staff = analytics.cluster_inputs(conn, body.key)
+        label, unit, theme, patients, staff = analytics.cluster_inputs(conn, cid, body.key)
     result = ai.rca(theme, label, patients, staff)
     result.update({"label": label, "unit": unit, "theme": theme, "theme_name": ai.THEMES.get(theme, theme)})
     return result
@@ -296,23 +480,25 @@ class ActionIn(BaseModel):
 
 @app.post("/api/actions")
 def api_action_create(body: ActionIn, request: Request):
-    require_clinic(request)
+    cid = require_clinic(request)
     with db() as conn:
         conn.execute(
-            "INSERT INTO actions (theme, scope_unit, title, cause, owner, due, public_text, status, created_day) "
-            "VALUES (?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO actions (theme, scope_unit, title, cause, owner, due, public_text, status, created_day, "
+            "clinic_id) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (body.theme, body.unit or "All", body.title, body.cause, body.owner, body.due,
-             body.public_text or body.title, "open", date.today().isoformat()),
+             body.public_text or body.title, "open", date.today().isoformat(), cid),
         )
     return {"ok": True}
 
 
 @app.post("/api/actions/{action_id}/done")
 def api_action_done(action_id: int, request: Request):
-    require_clinic(request)
+    cid = require_clinic(request)
     with db() as conn:
-        conn.execute("UPDATE actions SET status='done', done_day=? WHERE id=?",
-                     (date.today().isoformat(), action_id))
+        cur = conn.execute("UPDATE actions SET status='done', done_day=? WHERE id=? AND clinic_id=?",
+                           (date.today().isoformat(), action_id, cid))
+    if cur.rowcount != 1:
+        raise HTTPException(404, "action not found")
     return {"ok": True}
 
 
@@ -324,9 +510,9 @@ class AskIn(BaseModel):
 @app.post("/api/clinic/ask")
 def api_clinic_ask(body: AskIn, request: Request):
     """Post a follow-up question on a report. The reporter sees it by opening their case code."""
-    require_clinic(request)
+    cid = require_clinic(request)
     with db() as conn:
-        r = conn.execute("SELECT case_hash FROM reports WHERE id=?", (body.report_id,)).fetchone()
+        r = conn.execute("SELECT case_hash FROM reports WHERE id=? AND clinic_id=?", (body.report_id, cid)).fetchone()
         if not r:
             raise HTTPException(404, "report not found")
         conn.execute("INSERT INTO case_messages (case_hash, sender, body, created_day) VALUES (?,?,?,?)",
@@ -336,19 +522,25 @@ def api_clinic_ask(body: AskIn, request: Request):
 
 @app.get("/qr", response_class=HTMLResponse)
 def qr_sheet(request: Request):
-    """Printable sheet: one QR code per WARD (not per room, so a report cannot point to one patient)."""
-    if not is_clinic(request):
+    """Printable sheet: one QR code per WARD (not per room, so a report cannot point to one patient),
+    plus a Telegram QR per ward and the staff links."""
+    cid = current_clinic(request)
+    if cid is None:
         return RedirectResponse("/login", status_code=303)
     base = str(request.base_url).rstrip("/")
     with db() as conn:
-        wards = ward_list(conn)
+        c = clinics.get(conn, cid)
+        wards = reports.ward_list(conn, cid)
     for w in wards:
-        url = f"{base}/r/{w['code']}"
-        buf = io.BytesIO()
-        segno.make(url, error="m").save(buf, kind="svg", scale=6, border=2, xmldecl=False, svgns=True)
-        w["svg"] = buf.getvalue().decode()
-        w["url"] = url
-    return templates.TemplateResponse(request, "qrsheet.html", {"wards": wards})
+        w["url"] = f"{base}/r/{w['code']}"
+        w["svg"] = qr_svg(w["url"])
+        tg = tg_link("w_" + w["code"])
+        w["tg_svg"] = qr_svg(tg, scale=3) if tg else None
+    staff_url = f"{base}/c/{c['slug']}/staff"
+    staff_tg = tg_link("c_" + c["slug"])
+    return templates.TemplateResponse(request, "qrsheet.html", {
+        "wards": wards, "clinic": c, "staff_url": staff_url, "staff_svg": qr_svg(staff_url),
+        "staff_tg_svg": qr_svg(staff_tg, scale=3) if staff_tg else None, "bot": bot_username()})
 
 
 @app.get("/api/health")
