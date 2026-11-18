@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% from "_icons.html" import icon %}
 {% block title %}Pricing · Ovoz{% endblock %}
-{% block nav %}
-  {% if is_clinic %}<a href="/dashboard">Dashboard</a>{% else %}<a href="/login">Clinic login</a><a href="/signup">Sign up</a>{% endif %}
-  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
-{% endblock %}
+{% from "_nav.html" import public_nav %}
+{% block nav %}{{ public_nav(is_clinic, "pricing") }}{% endblock %}
 {% block content %}
 <div class="wrap pricing">
   {% for t in texts %}

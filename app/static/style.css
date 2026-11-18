@@ -22,9 +22,18 @@ p { margin: .3rem 0 .8rem; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px;
   background: #fff; border-bottom: 1px solid var(--line); }
 .topbar > a { color: var(--brand); text-decoration: none; font-weight: 800; font-size: 1.15rem; letter-spacing: -.01em; }
-.topbar .nav { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
-.topbar .nav a { color: var(--muted); text-decoration: none; font-weight: 600; font-size: .95rem; }
-.topbar .nav a:hover { color: var(--brand); }
+.topbar .brand { margin-right: auto; }
+.nav-links { display: flex; gap: 4px; align-items: center; }
+.nav-links:empty { display: none; }
+.nav-links a { color: var(--muted); text-decoration: none; font-weight: 600; font-size: .95rem; padding: 6px 10px;
+  border-radius: 8px; white-space: nowrap; }
+.nav-links a:hover { color: var(--ink); background: var(--bg); }
+.nav-links a.on { color: var(--brand-dark); background: var(--brand-soft); }
+/* phones: logo and language on the first row, links on their own scrollable row below */
+@media (max-width: 640px) {
+  .topbar { flex-wrap: wrap; row-gap: 8px; }
+  .nav-links { order: 3; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -6px; }
+}
 .lang { display: inline-flex; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 2px; }
 .lang button { background: transparent; color: var(--muted); border: 0; border-radius: 8px; padding: 5px 11px;
   font-weight: 700; font-size: .85rem; cursor: pointer; min-height: 0; }
@@ -134,7 +143,6 @@ th { color: var(--muted); font-weight: 600; font-size: .82rem; }
 .board .lang { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.15); }
 .board .lang button { color: #cbd5e1; }
 .board .lang button.on { background: #fff; color: #0b1f44; }
-.board .wrap.noprint a { color: #93c5fd; }
 .msg { border-radius: 12px; padding: 10px 12px; margin: 8px 0; max-width: 90%; }
 .msg.clinic { background: var(--brand-soft); }
 .msg.reporter { background: #f1f5f9; margin-left: auto; }
@@ -264,7 +272,6 @@ ul.ticks .ico { color: var(--brand); margin-top: 2px; }
 .home-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 24px; margin: 0; }
 .home-links a { color: var(--muted); }
 .home-links a:hover { color: var(--brand-dark); }
-.wrap.home-foot { text-align: center; max-width: 760px; }
 @media (max-width: 480px) { .home-cta .btn { width: 100%; } .home-steps { flex-direction: column; align-items: center; } }
 
 /* check screen: compact */
@@ -274,3 +281,20 @@ ul.ticks .ico { color: var(--brand); margin-top: 2px; }
 /* dashboard: urgent reports stand out in the report list */
 .quote.urgent { border-left-color: var(--bad); background: var(--bad-soft); }
 #reports h2 { margin-bottom: 10px; }
+
+/* ---- shared layout ---- */
+.wrap.narrow { max-width: 440px; }
+.foot { max-width: 1180px; margin: 32px auto 24px; padding: 0 16px; text-align: center; font-size: .85rem; color: var(--muted);
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.foot a { color: var(--muted); }
+.foot a:hover { color: var(--brand-dark); }
+.board .foot, .board .foot a { color: #93c5fd; }
+
+/* phones: the action list stacks instead of squeezing into table columns */
+@media (max-width: 640px) {
+  #actions thead { display: none; }
+  #actions table, #actions tbody, #actions tr, #actions td { display: block; width: 100%; }
+  #actions tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  #actions td { border: 0; padding: 2px 0; }
+  #actions td:empty { display: none; }
+}

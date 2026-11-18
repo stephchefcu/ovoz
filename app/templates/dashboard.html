@@ -1,9 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ clinic.name }} · Ovoz{% endblock %}
-{% block nav %}
-  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
-  <a href="/settings" data-i18n="nav_settings">Settings</a><a href="/qr" data-i18n="nav_qr">QR codes</a><a href="/c/{{ clinic.slug }}" data-i18n="nav_public">Public page</a><a href="/logout" data-i18n="nav_logout">Log out</a>
-{% endblock %}
+{% from "_nav.html" import clinic_nav %}
+{% block nav %}{{ clinic_nav("dashboard") }}{% endblock %}
 {% block content %}
 <div class="wrap wide">
   <div class="row" style="justify-content:space-between">

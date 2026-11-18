@@ -1,9 +1,6 @@
 {% extends "base.html" %}
 {% from "_icons.html" import icon %}
 {% block title %}{{ clinic.name }} · Ovoz{% endblock %}
-{% block nav %}
-  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
-{% endblock %}
 {% block content %}
 <div class="wrap">
   <h1>{{ clinic.name }}</h1>
@@ -24,7 +21,7 @@
   {% if tg %}<a class="listbtn" href="{{ tg }}"><span data-i18n="tg_open"></span>{{ icon("send", 20) }}</a>{% endif %}
   <a class="listbtn" href="/case"><span data-i18n="cl_case"></span>{{ icon("search", 20) }}</a>
 
-  {% if is_clinic %}<p class="small" style="margin-top:18px"><a href="/dashboard">Dashboard</a> · <a href="/settings">Settings</a> · <a href="/qr">QR codes</a></p>{% endif %}
+  {% if is_clinic %}<p class="small" style="margin-top:18px"><a href="/dashboard" data-i18n="h_dashboard">Dashboard</a></p>{% endif %}
 </div>
 {% endblock %}
 {% block scripts %}<script src="/static/i18n.js?v={{ V }}"></script>{% endblock %}

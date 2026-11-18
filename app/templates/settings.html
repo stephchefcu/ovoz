@@ -1,9 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Settings · {{ clinic.name }} · Ovoz{% endblock %}
-{% block nav %}
-  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
-  <a href="/dashboard" data-i18n="nav_dashboard">Dashboard</a><a href="/qr" data-i18n="nav_qr">QR codes</a><a href="/logout" data-i18n="nav_logout">Log out</a>
-{% endblock %}
+{% from "_nav.html" import clinic_nav %}
+{% block nav %}{{ clinic_nav("settings") }}{% endblock %}
 {% block content %}
 <div class="wrap wide">
   <h1 style="margin-bottom:2px" data-i18n="nav_settings">Settings</h1>
@@ -86,7 +84,7 @@
         <td><input class="e_unit" value="${esc(w.unit)}" maxlength="80"></td>
         <td>${w.reports}</td>
         <td style="white-space:nowrap">
-          <button class="small save">${esc(t("save"))}</button>
+          <button class="small ghost save">${esc(t("save"))}</button>
           ${w.active ? `<button class="small ghost toggle" data-active="0">${esc(t("st_remove"))}</button>`
                      : `<button class="small ghost toggle" data-active="1">${esc(t("st_restore"))}</button>`}
           ${w.active ? `<a class="small" href="/r/${esc(w.code)}" target="_blank">${esc(t("st_open"))}</a>` : `<span class="small">${esc(t("st_removed"))}</span>`}
