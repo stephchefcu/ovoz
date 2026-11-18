@@ -62,6 +62,13 @@ patients and staff say about the same ward, and helps the clinic fix causes. Hac
 
 ## Run it (on the laptop)
 
+**Before the first run,** check `.env` (copy it from `.env.example` if it is missing):
+- `SESSION_SECRET`: a long random value. It protects stored case codes: set it once and never change it after
+  real reports exist, or old case codes stop working.
+- `CLINIC_PASSWORD`: the demo clinic's password. Without it, the password is `demo`.
+- Optional: `VOICELAB_API_KEY` for real voice (otherwise demo text is filled in), `LLM_*` for AI sorting,
+  `TELEGRAM_BOT_TOKEN` for the bot.
+
 Three terminal tabs in the project folder:
 
 ```bash
@@ -75,7 +82,10 @@ Three terminal tabs in the project folder:
 ```
 
 New tunnel link → reprint QR codes from `/qr`. Keep the laptop awake (`caffeinate -d`).
-Tests: `python tests/smoke_test.py` and `python tests/telegram_bot_test.py`.
+Tests: `python tests/smoke_test.py` and `python tests/telegram_bot_test.py` (every line should say PASS).
+
+**Get the latest code** (after a pull request is merged): `git pull origin main`, then stop and start the web app
+and the bot (Ctrl+C, then the same command). The tunnel can keep running, so the link stays the same.
 Code: https://github.com/stephchefcu/ovoz (public). Keys live only in `.env`: never commit it.
 
 ## Logo
