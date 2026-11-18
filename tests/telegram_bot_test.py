@@ -279,4 +279,11 @@ except TypeError:
     err = "TypeError"
 check("getUpdates accepts Telegram's timeout parameter", err == "telegram error")
 
+# attempt limits forget expired chats, so the in-memory store cannot grow without end
+_old = time.time() - 7200
+for _i in range(10_001):
+    bot._rate[f"old{_i}"].append(_old)
+bot._limited(1, "report", 6)
+check("expired chat attempt records are cleared", len(bot._rate) < 100)
+
 sys.exit(1 if check.failed else 0)

@@ -350,7 +350,11 @@ class Bot:
 
     def _limited(self, chat_id, bucket, limit, window=600) -> bool:
         key = hashlib.sha256(f"{config.SECRET}:{chat_id}:{bucket}".encode()).hexdigest()
-        q, now = self._rate[key], time.time()
+        now = time.time()
+        if len(self._rate) > 10_000:  # forget chats whose attempts have all expired, so memory stays small
+            for k in [k for k, v in self._rate.items() if not v or now - v[-1] > 3600]:
+                del self._rate[k]
+        q = self._rate[key]
         while q and now - q[0] > window:
             q.popleft()
         if len(q) >= limit:

@@ -38,12 +38,16 @@ if config.SECRET in ("", "change-me", "change-me-to-a-long-random-string"):
 # --------------------------------------------------------------------------------------
 # In-memory only (never persisted, so no IP address is ever stored)
 _RATE = defaultdict(deque)
+_RATE_MAX_WINDOW = 3600  # the longest window any limit uses (sign-up)
 
 
 def rate_limited(request: Request, bucket: str, limit: int = 6, window: int = 600) -> bool:
     ip = request.client.host if request.client else "x"
     key = hashlib.sha256((ip + bucket).encode()).hexdigest()
     now = time.time()
+    if len(_RATE) > 10_000:  # forget connections whose attempts have all expired, so memory stays small
+        for k in [k for k, v in _RATE.items() if not v or now - v[-1] > _RATE_MAX_WINDOW]:
+            del _RATE[k]
     q = _RATE[key]
     while q and now - q[0] > window:
         q.popleft()
@@ -467,7 +471,7 @@ def api_dashboard(request: Request):
 
 
 class RcaIn(BaseModel):
-    key: str
+    key: str = Field(pattern=r"^.+\|[a-z_]+$", max_length=300)  # "<place>|<theme>", as the dashboard sends
 
 
 @app.post("/api/clusters/rca")
