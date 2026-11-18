@@ -111,7 +111,9 @@ pilot in one clinic with numbers (reports per week, share linked, problems fixed
 ## Honest limits
 
 - Name hiding is rule-based and can miss names; the privacy check helps, a language model would do better.
-- Triage uses keyword rules unless an AI model key is added (`LLM_*` in `.env`).
+- Triage uses keyword rules. Claude Sonnet 5.5 is ready but **off**: to switch it on, run `pip install -r requirements.txt`,
+  put `ANTHROPIC_API_KEY=...` in `.env` and restart the web app and the bot (`/api/health` then shows `"llm": "claude"`).
+  About $2 per busy clinic per month. Only text with names already hidden is sent; if Claude is down, the rules take over.
 - One shared password per clinic: no roles yet.
 - Not built (say "in our pilot design"): instant duty-manager alert, roles (ward head, quality coordinator),
   ACT / WATCH / CLOSE with reasons and audit log, 30-day "did the fix work" check, silence and zero-scan alerts.
@@ -124,7 +126,7 @@ pilot in one clinic with numbers (reports per week, share linked, problems fixed
 - `SESSION_SECRET`: a long random value. It protects stored case codes: set it once and never change it after
   real reports exist, or old case codes stop working.
 - `CLINIC_PASSWORD`: the demo clinic's password. Without it, the password is `demo`.
-- Optional: `VOICELAB_API_KEY` for real voice (otherwise demo text is filled in), `LLM_*` for AI sorting,
+- Optional: `VOICELAB_API_KEY` for real voice (otherwise demo text is filled in), `ANTHROPIC_API_KEY` for AI sorting with Claude (off until set),
   `TELEGRAM_BOT_TOKEN` for the bot.
 
 Three terminal tabs in the project folder:
