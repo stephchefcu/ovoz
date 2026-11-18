@@ -303,7 +303,13 @@ def _claude_available() -> bool:
 
 
 def llm_provider():
-    """Which AI model is switched on: "claude", "openai-compatible", or None (keyword rules only)."""
+    """Which AI model is switched on: "claude", "openai-compatible", or None (keyword rules only).
+    A key pasted into .env (or removed) takes effect on the next report, without restarting the app or the bot."""
+    if config.refresh_ai_keys():
+        _CLAUDE["client"] = None          # build the client again with the new key
+        _CLAUDE_CHECK["ok"] = None        # and re-check (warns once if Claude can't run here)
+        print("AI key changed in .env: Claude is now " + ("on." if config.ANTHROPIC_API_KEY else "off."),
+              file=sys.stderr)
     if config.ANTHROPIC_API_KEY and _claude_available():
         return "claude"
     if config.LLM_BASE_URL and config.LLM_API_KEY and config.LLM_MODEL:
