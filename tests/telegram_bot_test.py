@@ -82,15 +82,15 @@ msg("no-such-clinic")
 check("unknown clinic code refused", "не найдена" in api.last()["text"])
 msg("demo")
 check("typed clinic code accepted", any("Demo clinic" in p["text"] for p in api.sent()[-2:]))
-check("privacy note shown (Russian)", any("Что мы сохраняем" in p["text"] for p in api.sent()))
-check("role choice offered", api.buttons() == ["role:patient", "role:staff", "role:case"])
-press("role:patient")
+check("trust message comes first (Russian)", any("Telegram ID не сохраняются" in p["text"] for p in api.sent()[-2:]))
+check("who-are-you choice offered", api.buttons() == ["role:patient", "role:relative", "role:staff", "role:help", "role:case"])
+press("role:relative")
 check("ward list offered", "ward:" + ward in api.buttons())
 labels = [b["text"] for row in api.last()["reply_markup"]["inline_keyboard"] for b in row]
 check("department names shown in Russian", "Терапевтическое отделение" in labels and "Therapy ward" not in labels)
 press("ward:" + ward)
-check("rating offered", "rate:4" in api.buttons() and "rate:skip" in api.buttons())
-press("rate:4")
+check("three faces offered", api.buttons() == ["rate:good", "rate:ok", "rate:bad", "rate:skip"])
+press("rate:ok")
 msg(voice={"file_id": "VOICE1", "duration": 7, "mime_type": "audio/ogg", "file_size": 20000})
 check("voice downloaded and transcribed", api.downloads == ["VOICE1"] and "send" in api.buttons())
 check("draft shown for checking", "никто не подошёл" in api.last()["text"])
@@ -100,7 +100,7 @@ check("typed correction replaces the draft", "ждали два часа" in car
 check("review shows the MASKED text, not the name or phone",
       "[NAME]" in card and "[PHONE]" in card and "Гульнара" not in card and "901234567" not in card)
 check("review lists every field that is sent",
-      all(x in card for x in ("Клиника: Demo clinic", "Терапевтическое отделение", "пациент или родственник", "Оценка: 4★", "Дата:", "Язык: Русский")))
+      all(x in card for x in ("Клиника: Demo clinic", "Терапевтическое отделение", "Вы: родственник пациента", "Оценка: 😐 Нормально", "Дата:", "Язык: Русский")))
 check("review says what is NOT sent and asks for agreement",
       "Не отправляется" in card and "/privacy" in card and api.buttons() == ["send", "cancel"])
 msg("/privacy")
@@ -112,7 +112,8 @@ code = done.split("<code>")[1].split("</code>")[0]
 check("case code returned", len(code) == 9 and code[4] == "-")
 with db() as conn:
     r = conn.execute("SELECT * FROM reports WHERE case_hash=?", (hash_code(code),)).fetchone()
-check("report stored as patient / ru / rating 4", r and (r["source"], r["lang"], r["rating"], r["ward_code"]) == ("patient", "ru", 4, ward))
+check("report stored as patient-side / relative / ru / rating 3",
+      r and (r["source"], r["reporter"], r["lang"], r["rating"], r["ward_code"]) == ("patient", "relative", "ru", 3, ward))
 check("stored text is masked", r and "Гульнара" not in r["text_masked"] and "901234567" not in r["text_masked"])
 check("stored text is exactly what the review card showed", r and r["text_masked"] in card)
 from app import terms  # noqa: E402
@@ -124,16 +125,17 @@ msg("/start c_demo"); press("lang:uz"); press("role:staff")
 labels = [b["text"] for row in api.last()["reply_markup"]["inline_keyboard"] for b in row]
 check("department names shown in Uzbek", "Terapiya bo'limi" in labels and "Therapy ward" not in labels)
 press("ward:" + ward)
-check("staff harm options offered", api.buttons() == ["harm:near", "harm:none", "harm:minor", "harm:serious"])
-press("harm:near")
-msg("Dori dozasi noto'g'ri yozilgan edi, berishdan oldin sezib qoldik.")
+check("staff go straight to 'what happened' (no category or severity to choose)",
+      "near-miss" not in str(api.last().get("reply_markup", "")) and "oldi olingan xatolar eng muhimi" in api.last()["text"])
+msg("Yagona anesteziolog dozani noto'g'ri yozdi, yaxshiyamki berishdan oldin sezib qoldik.")
 card = api.last()["text"]
-check("staff review shows type and week-only note",
-      "Oz qoldi" in card and "faqat haftani" in card and "Roziman" in str(api.last()["reply_markup"]))
+check("staff review: week-only note, no type line, agree button",
+      "faqat haftani" in card and "Turi" not in card and "Roziman" in str(api.last()["reply_markup"]))
+check("privacy check flags a unique role", "tanitishi mumkin" in card and "Yagona anesteziolog" in card)
 press("send")
 with db() as conn:
     s = conn.execute("SELECT * FROM reports WHERE source='staff' ORDER BY id DESC LIMIT 1").fetchone()
-check("staff near miss stored", s and s["near_miss"] == 1 and s["lang"] == "uz")
+check("AI decided it was a near miss", s and s["near_miss"] == 1 and s["lang"] == "uz" and s["reporter"] == "staff")
 
 # ---- case follow-up -------------------------------------------------------------------------
 msg("/case")
@@ -189,10 +191,13 @@ C2 = 900100
 msg("/start w_" + other_ward, chat=C2)
 check("ward QR link names the clinic", "Other Clinic" in api.last()["text"])
 press("lang:uz", chat=C2)
-check("ward QR link skips the clinic question", api.buttons() == ["role:patient", "role:staff", "role:case"])
+check("patient QR link: no clinic question and no staff option",
+      api.buttons() == ["role:patient", "role:relative", "role:help", "role:case"])
+press("role:staff", chat=C2)
+check("patient QR link cannot open the staff form", bot.sessions[C2].source == "")
 press("role:patient", chat=C2)
 check("ward QR link skips the department question", "rate:skip" in api.buttons())
-press("rate:5", chat=C2)
+press("rate:good", chat=C2)
 msg("Qabulxonada navbat juda uzun edi.", chat=C2)
 card2 = api.last()["text"]
 check("review shows the right clinic and department", "Klinika: Other Clinic" in card2 and "Kardiologiya bo'limi" in card2)
@@ -201,8 +206,8 @@ with db() as conn:
     rr = conn.execute("SELECT clinic_id, ward_code FROM reports WHERE text_masked LIKE 'Qabulxonada%'").fetchone()
 check("report saved for that clinic", rr and rr["clinic_id"] == other and rr["ward_code"] == other_ward)
 C3 = 900200
-msg("/start c_other", chat=C3); press("lang:ru", chat=C3); press("role:staff", chat=C3)
-check("clinic QR link offers only that clinic's departments",
+msg("/start s_other", chat=C3); press("lang:ru", chat=C3)
+check("staff-room QR link goes straight to departments, only this clinic's",
       api.buttons() == ["ward:" + other_ward] and "ward:" + ward not in api.buttons())
 press("ward:" + ward, chat=C3)  # a demo-clinic department, not offered: must be refused
 check("another clinic's department is refused", "Ошибка" in api.last()["text"] and bot.sessions[C3].ward == "")
@@ -210,6 +215,26 @@ with db() as conn:
     clinics.update_ward(conn, other, other_ward, "Cardiology", "", "", "Cardiology", False)
 msg("/start w_" + other_ward, chat=900300); press("lang:en", chat=900300)
 check("removed department's QR link falls back to asking the clinic", "Which clinic" in api.last()["text"])
+
+# ---- "Someone needs help NOW", serious harm and bribery notes -----------------------------------
+C4 = 900400
+msg("/start w_" + ward, chat=C4); press("lang:en", chat=C4); press("role:help", chat=C4)
+check("help NOW: what to do comes first (nurse call / 103)", "103" in api.last()["text"] and bot.sessions[C4].urgent)
+msg("My father is not breathing well, nobody comes.", chat=C4)
+check("help NOW review is marked urgent, no rating asked", "Marked urgent" in api.last()["text"] and "Rating" not in api.last()["text"])
+press("send", chat=C4)
+with db() as conn:
+    u = conn.execute("SELECT urgent, severity, reporter FROM reports ORDER BY id DESC LIMIT 1").fetchone()
+check("help NOW report stored as urgent", u and u["urgent"] == 1 and u["severity"] >= 4)
+check("urgent reporter told to call a nurse", any("call a nurse" in p["text"] for p in api.sent()[-3:]))
+C5 = 900500
+msg("/start s_demo", chat=C5); press("lang:en", chat=C5); press("ward:" + ward, chat=C5)
+msg("Wrong patient got the overdose, there was bleeding.", chat=C5); press("send", chat=C5)
+check("serious staff report: official-channel reminder", any("official channel" in p["text"] for p in api.sent()[-3:]))
+C6 = 900600
+msg("/start w_" + ward, chat=C6); press("lang:ru", chat=C6); press("role:patient", chat=C6); press("rate:bad", chat=C6)
+msg("Просили деньги за палату, сказали это доплата.", chat=C6); press("send", chat=C6)
+check("bribery mention: anti-corruption line 1203", any("1203" in p["text"] for p in api.sent()[-3:]))
 
 # ---- token never appears in errors ------------------------------------------------------------
 real = tb.TelegramApi("123456:SECRET-TOKEN-VALUE")

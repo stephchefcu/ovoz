@@ -25,6 +25,7 @@ app = FastAPI(title="Ovoz")
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 templates.env.globals["TERMS_VERSION"] = terms.TERMS_VERSION
+templates.env.globals["V"] = str(int(time.time()))  # cache-buster: browsers reload CSS/JS after a restart
 
 init_db()
 
@@ -168,7 +169,7 @@ def staff_page(request: Request, slug: str):
         c = _clinic_or_404(conn, slug)
         wards = reports.ward_list(conn, c["id"])
     return templates.TemplateResponse(request, "staff.html", {"wards": wards, "clinic": c,
-                                                              "tg": tg_link("c_" + c["slug"])})
+                                                              "tg": tg_link("s_" + c["slug"])})
 
 
 @app.get("/staff")
@@ -217,6 +218,8 @@ class ReportIn(BaseModel):
     near_miss: bool = False
     agree: bool = False          # the person ticked "I agree" after seeing exactly what is sent
     terms_version: str = ""      # the Terms & Privacy version they saw
+    reporter: str = Field(default="", pattern="^(|patient|relative|staff)$")
+    urgent: bool = False         # "Someone needs help NOW" was pressed
 
 
 def require_agreement(agree: bool, version: str):
@@ -236,8 +239,9 @@ def preview(body: PreviewIn, request: Request):
     if rate_limited(request, "preview", limit=60):
         raise HTTPException(429, "too many requests")
     now = analytics.local_now()
-    return {"masked": ai.mask_text(body.text), "date": now.date().isoformat(),
-            "time_bucket": analytics.time_bucket(now), "terms_version": terms.TERMS_VERSION}
+    masked = ai.mask_text(body.text)
+    return {"masked": masked, "date": now.date().isoformat(), "time_bucket": analytics.time_bucket(now),
+            "flags": ai.privacy_flags(masked), "terms_version": terms.TERMS_VERSION}
 
 
 @app.post("/api/report")
@@ -249,7 +253,8 @@ def create_report(body: ReportIn, request: Request):
         if not reports.ward_exists(conn, body.ward_code):
             raise HTTPException(400, "unknown ward")
         return reports.save_report(conn, body.source, body.ward_code, body.text, body.lang,
-                                   body.rating, body.harm, body.near_miss, terms_version=body.terms_version)
+                                   body.rating, body.harm, body.near_miss, terms_version=body.terms_version,
+                                   reporter=body.reporter or None, urgent=body.urgent)
 
 
 @app.post("/api/transcribe")
@@ -537,7 +542,7 @@ def qr_sheet(request: Request):
         tg = tg_link("w_" + w["code"])
         w["tg_svg"] = qr_svg(tg, scale=3) if tg else None
     staff_url = f"{base}/c/{c['slug']}/staff"
-    staff_tg = tg_link("c_" + c["slug"])
+    staff_tg = tg_link("s_" + c["slug"])  # opens the bot straight in the staff form
     return templates.TemplateResponse(request, "qrsheet.html", {
         "wards": wards, "clinic": c, "staff_url": staff_url, "staff_svg": qr_svg(staff_url),
         "staff_tg_svg": qr_svg(staff_tg, scale=3) if staff_tg else None, "bot": bot_username()})

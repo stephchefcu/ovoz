@@ -1,69 +1,61 @@
 {% extends "base.html" %}
-{% block title %}Staff report{% endblock %}
+{% block title %}Staff report · {{ clinic.name }} · Ovoz{% endblock %}
 {% block nav %}
   <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
 {% endblock %}
 {% block content %}
 <div class="wrap">
   <div id="form">
-    <div class="small muted">{{ clinic.name }}</div>
+    <div class="eyebrow">{{ clinic.name }}</div>
     <h1 data-i18n="s_title"></h1>
-    <p class="muted" data-i18n="s_sub"></p>
+    <div class="trust">🔒 <span data-i18n="trust_staff"></span></div>
+    <p class="muted" data-i18n="staff_prompt"></p>
 
     <div class="card">
-      <label for="ward" data-i18n="p_ward"></label>
+      <label for="ward" class="q" data-i18n="p_ward"></label>
       <select id="ward">
         {% for w in wards %}<option value="{{ w.code }}" data-name-en="{{ w.name }}" data-name-uz="{{ w.name_uz or '' }}" data-name-ru="{{ w.name_ru or '' }}">{{ w.name }}</option>{% endfor %}
       </select>
 
-      <label data-i18n="s_type"></label>
-      <select id="type">
-        <option value="incident" data-i18n="s_incident"></option>
-        <option value="near" data-i18n="s_near"></option>
-      </select>
-
-      <label data-i18n="s_harm"></label>
-      <select id="harm">
-        <option value="none" data-i18n="s_h_none"></option>
-        <option value="minor" data-i18n="s_h_minor"></option>
-        <option value="serious" data-i18n="s_h_serious"></option>
-      </select>
-
-      <label for="text" data-i18n="p_what"></label>
-      <div class="row" style="margin-bottom:8px"><button type="button" class="rec" id="recbtn">🎤</button></div>
+      <label for="text" class="q" data-i18n="p_what"></label>
+      <button type="button" class="rec" id="recbtn">🎤</button>
       <div id="recstatus" class="note info hidden"></div>
-      <textarea id="text" data-i18n-ph="s_ph" maxlength="3000"></textarea>
+      <textarea id="text" data-i18n-ph="s_ph" maxlength="3000" style="margin-top:10px"></textarea>
 
       <div id="error" class="note bad hidden"></div>
-      <div class="row" style="margin-top:12px"><button id="send" data-i18n="submit"></button></div>
+      <button id="send" class="block" style="margin-top:14px" data-i18n="submit"></button>
     </div>
 
-    {% if tg %}<p class="small"><a class="btn ghost small tgbtn" href="{{ tg }}" data-i18n="tg_open"></a></p>{% endif %}
-    <div class="card soft privacy">
-      <h3 data-i18n="priv_title"></h3>
+    <div class="note warn small" data-i18n="staff_emergency"></div>
+    <details class="privacy">
+      <summary data-i18n="privacy_how"></summary>
       <ul>
         <li data-i18n="priv_no"></li>
         <li data-i18n="priv_audio"></li>
         <li data-i18n="priv_yes"></li>
       </ul>
-    </div>
+    </details>
+    {% if tg %}<p class="small" style="margin-top:14px"><a href="{{ tg }}" data-i18n="tg_open"></a></p>{% endif %}
   </div>
 
   <div id="review" class="card hidden"></div>
 
   <div id="done" class="hidden">
+    <div class="done-mark">✅</div>
     <h1 data-i18n="done_title"></h1>
+    <div id="seriousnote" class="note warn hidden" data-i18n="serious_note"></div>
+    <div id="bribenote" class="note info hidden" data-i18n="bribe_note"></div>
     <p data-i18n="done_code"></p>
     <div class="code" id="code"></div>
     <p class="muted small"><span data-i18n="done_follow"></span> <a href="/case">/case</a></p>
-    <button class="ghost" id="again" data-i18n="again"></button>
+    <button class="ghost block" id="again" data-i18n="again"></button>
   </div>
 </div>
 {% endblock %}
 {% block scripts %}
-<script src="/static/i18n.js"></script>
-<script src="/static/record.js"></script>
-<script src="/static/review.js"></script>
+<script src="/static/i18n.js?v={{ V }}"></script>
+<script src="/static/record.js?v={{ V }}"></script>
+<script src="/static/review.js?v={{ V }}"></script>
 <script>
   const TERMS_VERSION = {{ TERMS_VERSION|tojson }};
   const PRIVACY_URL = "/privacy?c=" + encodeURIComponent({{ clinic.slug|tojson }});
@@ -75,7 +67,7 @@
   function showError(msg) { $("error").textContent = msg; $("error").classList.remove("hidden"); }
   const selText = id => $(id).options[$(id).selectedIndex].textContent;
 
-  // Step 1: "Send" shows exactly what will be stored. Step 2: they tick "I agree" and send.
+  // Staff never choose a category or severity: the AI does. Step 1 shows exactly what is stored, step 2 is "I agree".
   $("send").addEventListener("click", async () => {
     const text = $("text").value.trim();
     $("error").classList.add("hidden");
@@ -84,26 +76,26 @@
     let p;
     try { p = await previewText(text); } catch (e) { $("send").disabled = false; return showError(t("err")); }
     $("send").disabled = false;
-    const near = $("type").value === "near";
     showReview({
-      box: $("review"), hide: [$("form")], masked: p.masked,
+      box: $("review"), hide: [$("form")], masked: p.masked, flags: p.flags,
       rows: () => [
         [t("rv_clinic"), CLINIC_NAME],
         [t("p_ward"), selText("ward")],
         [t("rv_role"), t("role_staff")],
-        [t("rv_type"), selText("type")],
-        [t("s_harm"), selText("harm")],
         [t("rv_date"), partOfDay(p) + " (" + t("rv_staffdate") + ")"],
         [t("rv_lang"), langName()],
       ],
       onAgree: async () => {
         const r = await fetch("/api/report", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source: "staff", ward_code: $("ward").value, text, lang: LANG,
-            harm: $("harm").value, near_miss: near, agree: true, terms_version: TERMS_VERSION }) });
+          body: JSON.stringify({ source: "staff", ward_code: $("ward").value, text, lang: LANG, reporter: "staff",
+                                 agree: true, terms_version: TERMS_VERSION }) });
         if (!r.ok) throw new Error(r.status);
         const j = await r.json();
         $("code").textContent = j.case_code;
+        $("seriousnote").classList.toggle("hidden", !j.serious);
+        $("bribenote").classList.toggle("hidden", !j.bribery);
         $("review").classList.add("hidden"); $("done").classList.remove("hidden");
+        window.scrollTo(0, 0);
       },
     });
   });
