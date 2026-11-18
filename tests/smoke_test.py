@@ -230,4 +230,13 @@ for _i in range(10_001):
 anon.post("/api/preview", json={"text": "hello"})
 check("expired attempt records are cleared", len(_main._RATE) < 100)
 
+# ---- Claude needs Python 3.10+ and the anthropic SDK: never claim "Claude is on" when it can't run ----------
+_saved_key = ai.config.ANTHROPIC_API_KEY
+ai.config.ANTHROPIC_API_KEY = "test-key-not-real"
+ai._CLAUDE_CHECK["ok"] = None
+expected = "claude" if (sys.version_info >= (3, 10) and __import__("importlib.util").util.find_spec("anthropic")) else None
+check("Claude reported on only when it can actually run", ai.llm_provider() == expected)
+ai.config.ANTHROPIC_API_KEY = _saved_key
+ai._CLAUDE_CHECK["ok"] = None
+
 sys.exit(1 if check.failed else 0)

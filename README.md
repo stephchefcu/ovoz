@@ -59,7 +59,8 @@ The bot stores no chat id, username or audio; the conversation in progress lives
 Telegram itself still knows who sent a message, and the bot says so to users.
 
 **Language model (optional, off by default).** Claude: set `ANTHROPIC_API_KEY` (model `CLAUDE_MODEL`, default
-`claude-sonnet-5-5`; needs `pip install -r requirements.txt`). Or any OpenAI-compatible chat API: set `LLM_BASE_URL`,
+`claude-sonnet-5-5`; needs Python 3.10+ and `pip install -r requirements.txt`; on older Python the app
+warns once and uses keyword rules). Or any OpenAI-compatible chat API: set `LLM_BASE_URL`,
 `LLM_API_KEY`, `LLM_MODEL`. Without either, keyword rules are used. Test without calling Anthropic: `python tests/claude_test.py`.
 It improves triage, neutral summaries and root-cause help. Text is **masked before** it is sent.
 
