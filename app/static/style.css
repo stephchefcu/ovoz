@@ -153,3 +153,33 @@ label.agree input { width: 24px; height: 24px; margin-top: 1px; flex: none; acce
 .tgbtn { margin-top: 8px; }
 #wards td input { min-width: 120px; padding: 6px 8px; }
 @media (max-width: 420px) { .choice .emo { font-size: 1.7rem; } .wrap { padding: 14px; } }
+
+/* ---- icons and polish ---- */
+.ico { flex: none; vertical-align: -5px; }
+.trust { display: flex; gap: 10px; align-items: flex-start; }
+.trust .ico { margin-top: 1px; }
+.help { gap: 10px; }
+.choice .ico { width: 34px; height: 34px; color: var(--muted); }
+.choice.on .ico { color: var(--brand); }
+.step { display: flex; align-items: center; gap: 10px; font-weight: 700; margin: 22px 0 10px; }
+.card > .step:first-child { margin-top: 0; }
+.step .n { width: 26px; height: 26px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-dark);
+  display: inline-flex; align-items: center; justify-content: center; font-size: .85rem; flex: none; }
+.step .opt { font-weight: 500; }
+.listbtn { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 14px 16px;
+  background: #fff; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); text-decoration: none;
+  font-weight: 600; margin: 0 0 8px; min-height: 52px; }
+.listbtn:hover { border-color: var(--brand-line); background: var(--brand-soft); }
+.listbtn .ico { color: var(--muted); }
+.done { text-align: center; padding-top: 18px; }
+.done > .ico { color: var(--ok); }
+.done h1 { margin-top: 8px; }
+.codebox { display: flex; gap: 8px; align-items: stretch; margin: 10px 0; }
+.codebox .code { flex: 1; margin: 0; }
+.hero { padding: 18px 0 6px; }
+.hero h1 { font-size: 2rem; }
+.hero p { font-size: 1.05rem; }
+.cardlink { display: flex; gap: 14px; align-items: flex-start; text-decoration: none; color: var(--ink); }
+.cardlink .ico { color: var(--brand); margin-top: 2px; }
+.kpi .ico { color: var(--brand); }
+.card > div:first-child > .step:first-child { margin-top: 0; }

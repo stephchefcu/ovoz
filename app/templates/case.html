@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Case follow-up{% endblock %}
+{% from "_icons.html" import icon %}
+{% block title %}Case follow-up · Ovoz{% endblock %}
 {% block nav %}
   <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
 {% endblock %}
@@ -7,21 +8,21 @@
 <div class="wrap">
   <h1 data-i18n="c_title"></h1>
   <p class="muted" data-i18n="c_sub"></p>
+  <div class="trust">{{ icon("lock", 20) }}<span data-i18n="c_trust"></span></div>
   <div class="card">
-    <label for="code" data-i18n="c_code"></label>
-    <div class="row">
-      <input type="text" id="code" placeholder="ABCD-2345" autocomplete="off" style="max-width:260px;text-transform:uppercase">
-      <button id="open" data-i18n="c_open"></button>
-    </div>
+    <label for="code" class="q" data-i18n="c_code"></label>
+    <input type="text" id="code" placeholder="ABCD-2345" autocomplete="off" autocapitalize="characters"
+           style="text-transform:uppercase;font:700 1.3rem ui-monospace,Menlo,monospace;letter-spacing:.08em;text-align:center">
+    <button id="open" class="block" style="margin-top:12px">{{ icon("search", 20) }}<span data-i18n="c_open"></span></button>
     <div id="error" class="note bad hidden"></div>
   </div>
 
   <div id="thread" class="hidden">
     <div id="msgs"></div>
     <div class="card">
-      <label for="reply" data-i18n="c_reply"></label>
-      <textarea id="reply" style="min-height:80px" maxlength="2000"></textarea>
-      <div class="row" style="margin-top:10px"><button id="send" data-i18n="c_send"></button></div>
+      <label for="reply" class="q" data-i18n="c_reply"></label>
+      <textarea id="reply" style="min-height:90px" maxlength="2000"></textarea>
+      <button id="send" class="block" style="margin-top:12px" data-i18n="c_send"></button>
       <div id="ok" class="note ok hidden"></div>
     </div>
   </div>

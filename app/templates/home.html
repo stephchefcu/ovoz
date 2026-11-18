@@ -1,37 +1,45 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block nav %}
   {% if is_clinic %}<a href="/dashboard">Dashboard</a><a href="/logout">Log out</a>
   {% else %}<a href="/login">Clinic login</a><a href="/signup">Sign up</a>{% endif %}
 {% endblock %}
 {% block content %}
 <div class="wrap">
-  <h1>Ovoz</h1>
-  <p><b>Clinic safety &amp; feedback, by voice.</b></p>
-  <p class="muted">Patients and staff speak up anonymously, by voice or text, in Uzbek, Russian or English, on the web
-    or in Telegram. Each clinic privately sees the connected picture and fixes the causes.</p>
-
-  <div class="card">
-    <h2>For patients, relatives and staff</h2>
-    <p>Scan the Ovoz QR code in your clinic's department, or open the clinic's page.</p>
-    {% if bot %}<p class="small">In Telegram: <a href="https://t.me/{{ bot }}">@{{ bot }}</a> (scan the clinic's QR code so the bot knows your clinic and department).</p>{% endif %}
-    <p class="small"><a href="/case">Already reported? Follow up with your case code</a></p>
+  <div class="hero">
+    <h1>Ovoz</h1>
+    <p><b>Clinic safety and feedback, by voice.</b></p>
+    <p class="muted">Patients, relatives and staff speak up anonymously, by voice or text, in Uzbek, Russian or English,
+      on the web or in Telegram. Each clinic sees the connected picture and fixes the causes.</p>
   </div>
 
   <div class="card">
-    <h2>For clinics</h2>
-    <p class="muted small">Sign up, add your departments, print your QR codes. Your reports, departments and dashboard
-      are visible only to your clinic.</p>
-    <div class="row">
-      <a class="btn" href="/signup">Sign up your clinic</a>
-      <a class="btn ghost" href="/login">Clinic login</a>
+    <a class="cardlink" href="/case">
+      {{ icon("user", 26) }}
+      <div><h2 style="margin-bottom:4px">Patients, relatives and staff</h2>
+        <p class="small muted" style="margin:0">Scan the Ovoz QR code in your clinic's department. Already reported?
+          <span style="color:var(--brand-dark);font-weight:600">Follow up with your case code</span>.</p></div>
+    </a>
+    {% if bot %}<p class="small" style="margin:12px 0 0 40px">Telegram: <a href="https://t.me/{{ bot }}">@{{ bot }}</a></p>{% endif %}
+  </div>
+
+  <div class="card">
+    <div class="cardlink">
+      {{ icon("building", 26) }}
+      <div style="flex:1"><h2 style="margin-bottom:4px">Clinics</h2>
+        <p class="small muted">Sign up, add your departments, print your QR codes. Only your clinic sees your reports.</p>
+        <div class="row"><a class="btn" href="/signup">Sign up your clinic</a><a class="btn ghost" href="/login">Log in</a></div></div>
     </div>
   </div>
 
   {% if demo %}
   <div class="card soft">
-    <h2>Demo clinic</h2>
-    <p class="small muted">A clinic with invented data, to try every part of Ovoz. Clinic code: <code>demo</code>.</p>
-    <a class="btn ghost" href="/c/demo">Open the demo clinic</a>
+    <div class="cardlink">
+      {{ icon("shield", 26) }}
+      <div><h2 style="margin-bottom:4px">Try the demo clinic</h2>
+        <p class="small muted">Invented data. Clinic code <code>demo</code>.</p>
+        <a class="btn ghost" href="/c/demo">Open the demo clinic</a></div>
+    </div>
   </div>
   {% endif %}
 </div>

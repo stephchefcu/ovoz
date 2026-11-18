@@ -100,7 +100,7 @@ check("typed correction replaces the draft", "ждали два часа" in car
 check("review shows the MASKED text, not the name or phone",
       "[NAME]" in card and "[PHONE]" in card and "Гульнара" not in card and "901234567" not in card)
 check("review lists every field that is sent",
-      all(x in card for x in ("Клиника: Demo clinic", "Терапевтическое отделение", "Вы: родственник пациента", "Оценка: 😐 Нормально", "Дата:", "Язык: Русский")))
+      all(x in card for x in ("Клиника: Demo clinic", "Терапевтическое отделение", "Вы: родственник пациента", "Оценка: Нормально", "Дата:", "Язык: Русский")))
 check("review says what is NOT sent and asks for agreement",
       "Не отправляется" in card and "/privacy" in card and api.buttons() == ["send", "cancel"])
 msg("/privacy")
@@ -235,6 +235,12 @@ C6 = 900600
 msg("/start w_" + ward, chat=C6); press("lang:ru", chat=C6); press("role:patient", chat=C6); press("rate:bad", chat=C6)
 msg("Просили деньги за палату, сказали это доплата.", chat=C6); press("send", chat=C6)
 check("bribery mention: anti-corruption line 1203", any("1203" in p["text"] for p in api.sent()[-3:]))
+
+# ---- no emojis ("stickers") anywhere in what people see -------------------------------------
+import re as _re  # noqa: E402
+_emo = _re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2300-\u23FF\uFE0F]")
+seen = " ".join(p.get("text", "") + " " + str(p.get("reply_markup", "")) for p in api.sent())
+check("bot messages and buttons contain no emojis", not _emo.search(seen))
 
 # ---- token never appears in errors ------------------------------------------------------------
 real = tb.TelegramApi("123456:SECRET-TOKEN-VALUE")
