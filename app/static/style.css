@@ -270,3 +270,7 @@ ul.ticks .ico { color: var(--brand); margin-top: 2px; }
 /* check screen: compact */
 .rv-meta { margin: 10px 0 4px; }
 .rv-not { margin: 0 0 12px; color: var(--muted); }
+
+/* dashboard: urgent reports stand out in the report list */
+.quote.urgent { border-left-color: var(--bad); background: var(--bad-soft); }
+#reports h2 { margin-bottom: 10px; }
