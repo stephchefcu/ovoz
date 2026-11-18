@@ -29,6 +29,10 @@ check.failed = False
 # masking
 m = ai.mask_text("Medsestra Dilnoza qo'pol edi, tel 901234567, xona 4, soat 03:15.")
 check("masking removes name, phone, room and time", all(x in m for x in ["[NAME]", "[PHONE]", "[ROOM]", "[TIME]"]) and "Dilnoza" not in m)
+check("clock times in words are hidden (7am, soat 7, в 7 утра)",
+      all("[TIME]" in ai.mask_text(x) for x in ["noticed at 7am", "soat 7 da keldi", "в 7 утра"]))
+check("durations stay (2 soat kutdik, ждали 3 часа)",
+      "[TIME]" not in ai.mask_text("2 soat kutdik") + ai.mask_text("ждали 3 часа") + ai.mask_text("7 amazing nurses"))
 check("word-boundary keywords (no false 'urgent' on bo'limida)", not ai.rule_triage("Bolalar bo'limida sovuq", "patient")["urgent"])
 check("urgent detected", ai.rule_triage("У мужа сильная боль в груди", "patient")["urgent"])
 
@@ -166,6 +170,16 @@ _emo = _re.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u2300-\u23F
 pages = [anon.get(u).text for u in ("/", "/c/demo", "/c/demo/staff", "/r/" + codes["Therapy ward"], "/case", "/privacy?c=demo")]
 pages.append(anon.get("/static/i18n.js").text)
 check("web pages and interface text contain no emojis", not any(_emo.search(x) for x in pages))
+
+# Staff reports: without an AI model the summary is only a standard sentence, so managers see the checked text instead
+from app import main as _m  # noqa: E402
+_m._RATE.clear()  # earlier checks used up this test connection's report limit
+sr = anon.post("/api/report", json={"source": "staff", "ward_code": codes["Therapy ward"], "lang": "uz", "agree": True,
+               "terms_version": TV, "text": "Kechasi kislorod balloni bo'sh qoldi, ertalab sezdik"})
+staff_feed = [f for f in clinic.get("/api/dashboard").json()["feed"] if f["source"] == "staff"]
+check("staff report shows its own (masked) words when no AI summary exists",
+      sr.status_code == 200 and any("kislorod balloni" in f["text"] for f in staff_feed))
+check("staff report still shows the week only, not the day", all(f["day"].startswith("week of ") for f in staff_feed))
 
 # QR codes must scale, not be cropped: a fixed width/height gets cut off by the page's CSS and stops scanning
 qr_page = clinic.get("/qr").text

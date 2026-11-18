@@ -74,8 +74,10 @@ class Labeler:
 
 
 def _public_text(r):
-    """What management may see for a report (rule 3)."""
-    if r["source"] == "patient":
+    """What management may see for a report (rule 3).
+    Staff: the AI's neutral summary; if no AI wrote one (only the category's standard sentence), the text the
+    reporter checked and agreed to, with names and numbers hidden. Staff reports always show the week only."""
+    if r["source"] == "patient" or ai.is_rule_summary(r["summary"]):
         return r["text_masked"]
     return r["summary"]
 
@@ -119,7 +121,7 @@ def build_dashboard(conn, clinic_id):
             "avg_severity": round(sum(sev) / len(sev), 1),
             "near_misses": sum(1 for x in rs if x["near_miss"]),
             "patient_examples": [x["text_masked"][:220] for x in patients[:3]],
-            "staff_summaries": sorted({x["summary"] for x in staff})[:3],
+            "staff_summaries": sorted({_public_text(x) for x in staff})[:3],
             "categories": dict(Counter(ai.CATEGORIES[x["category"]][1] for x in rs).most_common(4)),
             "category_keys": dict(Counter(x["category"] for x in rs).most_common(4)),  # for translated names
             "last_day": max(x["created_day"] for x in patients) if patients else None,

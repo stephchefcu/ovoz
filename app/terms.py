@@ -9,7 +9,7 @@ NOTE: draft text for a hackathon MVP. Have a lawyer and native speakers review i
 """
 from typing import Optional
 
-TERMS_VERSION = "2026-11-18"
+TERMS_VERSION = "2026-11-18.2"  # staff reports: summary or the checked text
 
 _CLINIC = {"uz": "shifoxona", "ru": "клиника", "en": "the clinic"}
 _CONTACT = {"uz": "shifoxona ma'muriyatiga murojaat qiling", "ru": "обратитесь в администрацию клиники",
@@ -53,7 +53,7 @@ _TEXT = {
             ]),
             ("Kim ko'radi", [
                 "Faqat {clinic}ning sifat va xavfsizlik bo'yicha vakolatli xodimlari.",
-                "Xodimlar xabarlari rahbariyatga faqat neytral qisqa mazmun va hafta ko'rinishida ko'rsatiladi, aniq kun emas.",
+                "Rahbariyat xodimlar xabarlarini faqat hafta bilan ko'radi, aniq kun emas: neytral qisqa mazmun yoki siz tekshirgan matn sifatida (ism va raqamlar yashirilgan).",
                 "Xabarlar juda kam bo'lgan joylar birlashtiriladi, shunda hech kimni ajratib bo'lmaydi.",
                 "Xabarlar faqat davolash sifati va xavfsizlikni yaxshilash uchun ishlatiladi va shu ish uchun kerak "
                 "bo'lgancha saqlanadi.",
@@ -108,7 +108,7 @@ _TEXT = {
             ]),
             ("Кто это видит", [
                 "Только уполномоченные сотрудники службы качества и безопасности учреждения «{clinic}».",
-                "Сообщения сотрудников руководство видит только как нейтральное краткое содержание и неделю, без точного дня.",
+                "Руководство видит сообщения сотрудников только с неделей, без точного дня: как нейтральное краткое содержание или как проверенный вами текст (имена и номера скрыты).",
                 "Места с очень малым числом сообщений объединяются, чтобы никого нельзя было выделить.",
                 "Сообщения используются только для улучшения качества и безопасности помощи и хранятся, пока нужны для этой работы.",
             ]),
@@ -162,7 +162,7 @@ _TEXT = {
             ]),
             ("Who sees reports", [
                 "Only authorised quality and safety staff of {clinic}.",
-                "Managers see staff reports only as neutral summaries with the week, not the exact day.",
+                "Managers see staff reports with the week only, not the exact day: as a neutral summary, or as the text you checked (names and numbers hidden).",
                 "Places with very few reports are combined, so no one can be singled out.",
                 "Reports are used only to improve care and safety, and kept for as long as that work needs them.",
             ]),
