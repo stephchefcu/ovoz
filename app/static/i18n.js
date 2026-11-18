@@ -335,6 +335,11 @@ const I18N = {
 
 let LANG = "uz";
 try { LANG = localStorage.getItem("lang") || "uz"; } catch (e) {}
+// A link can choose the language: /pricing?lang=ru
+try {
+  const q = new URLSearchParams(location.search).get("lang");
+  if (q && I18N[q]) { LANG = q; try { localStorage.setItem("lang", q); } catch (e) {} }
+} catch (e) {}
 if (!I18N[LANG]) LANG = "uz";
 
 function t(key) { return (I18N[LANG] && I18N[LANG][key]) || I18N.en[key] || key; }

@@ -64,6 +64,9 @@ check("reply after agreeing is accepted",
 pg = anon.get("/privacy").text
 check("privacy page in all three languages",
       all(x in pg for x in ("Foydalanish shartlari va maxfiylik", "Условия использования", "Terms of use and privacy", TV)))
+pr = anon.get("/pricing").text
+check("pricing page in all three languages, free for patients, reports never blocked",
+      all(x in pr for x in ("Narxlar", "Цены", "Pricing", "790\u202f000", "No plan ever stops, delays or hides a report")))
 pt = anon.get("/r/" + codes["Therapy ward"]).text
 check("patient page carries Uzbek and Russian department names", "Terapiya bo&#39;limi" in pt or "Terapiya bo'limi" in pt)
 rid = clinic.get("/api/dashboard").json()["feed"][0]["id"]

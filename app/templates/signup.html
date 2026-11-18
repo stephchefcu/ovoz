@@ -4,6 +4,8 @@
 <div class="wrap" style="max-width:520px">
   <h1>Sign up your clinic</h1>
   <p class="muted">Your clinic gets its own login, departments, QR codes and dashboard. Other clinics never see your data.</p>
+  <div class="note info">You start with the full Klinika plan, free for 60 days. After that it stays free for up to 3
+    departments. <a href="/pricing">See pricing</a></div>
   <form class="card" method="post" action="/signup">
     <label for="name">Clinic name</label>
     <input id="name" name="name" required minlength="3" maxlength="120" value="{{ form.name or '' }}"

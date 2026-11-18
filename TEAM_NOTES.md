@@ -4,10 +4,13 @@
 (Uzbek, Russian, English), on the **web** or in **Telegram**. AI hides personal details, sorts reports, links what
 patients and staff say about the same ward, and helps the clinic fix causes. Hackathon problems #7 and #8.
 
-## Try it (demo)
+## Links
 
-The public link changes whenever the tunnel restarts. Current one:
-**https://impossible-herb-households-swim.trycloudflare.com**
+- **Live demo:** **https://impossible-herb-households-swim.trycloudflare.com** (changes whenever the tunnel restarts)
+- **Code (public):** **https://github.com/stephchefcu/ovoz**
+- **Telegram bot:** **https://t.me/ovoz_feedback_bot**
+
+## Try it (demo)
 
 | What | Path (add to the link) |
 |---|---|
@@ -73,7 +76,13 @@ Three terminal tabs in the project folder:
 
 New tunnel link → reprint QR codes from `/qr`. Keep the laptop awake (`caffeinate -d`).
 Tests: `python tests/smoke_test.py` and `python tests/telegram_bot_test.py`.
-Code: `github.com/stephchefcu/ovoz` (private). Keys live only in `.env`.
+Code: https://github.com/stephchefcu/ovoz (public). Keys live only in `.env`: never commit it.
+
+## Logo
+
+Files in `app/static/brand/`, colours: blue `#2563eb`, navy `#0f172a`, light blue on dark `#93c5fd`.
+Use `mark.svg` on light, `mark-on-dark.svg` on dark, `mark-small.svg` below 32 px, `telegram-avatar-640.png`
+for the bot picture (@BotFather → `/setuserpic`). The slanted "ovoz" wordmark: use the designer's SVG.
 
 ## 2-minute demo
 
