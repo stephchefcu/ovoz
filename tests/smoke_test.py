@@ -179,7 +179,9 @@ sr = anon.post("/api/report", json={"source": "staff", "ward_code": codes["Thera
 staff_feed = [f for f in clinic.get("/api/dashboard").json()["feed"] if f["source"] == "staff"]
 check("staff report shows its own (masked) words when no AI summary exists",
       sr.status_code == 200 and any("kislorod balloni" in f["text"] for f in staff_feed))
-check("staff report still shows the week only, not the day", all(f["day"].startswith("week of ") for f in staff_feed))
+import datetime as _dt  # noqa: E402
+check("staff report still shows the week only, not the day",
+      all(f["week"] and _dt.date.fromisoformat(f["day"]).weekday() == 0 for f in staff_feed))
 
 # QR codes must scale, not be cropped: a fixed width/height gets cut off by the page's CSS and stops scanning
 qr_page = clinic.get("/qr").text

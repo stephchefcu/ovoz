@@ -55,6 +55,10 @@
   const tr = (prefix, key, fallback) => (I18N.en[prefix + key] ? t(prefix + key) : fallback);
   const theme = c => tr("th_", c.theme, c.theme_name);
   const cat = (key, fallback) => tr("cat_", key, fallback);
+  // A place (department, group or "other units") in the chosen language; falls back to the name the clinic typed
+  const place = s => (s === DATA.other_label ? t("db_other_units")
+    : (DATA.place_names[s] && DATA.place_names[s][LANG]) || s);
+  const day = f => (f.week ? tf("db_week", { d: f.day }) : f.day);
   let DATA = null;
   let FEED_ALL = false;  // the 5 newest reports, or all of them
   const FEED_FIRST = 5;
@@ -79,13 +83,13 @@
 
 
     $("radarbox").classList.toggle("hidden", !d.radar.length);
-    $("radar").innerHTML = d.radar.map(r => `<div class="note warn"><b>${esc(r.label)}</b>: ${esc(tf("db_radar_row", { n: r.this_week, usual: r.usual }))}</div>`).join("");
+    $("radar").innerHTML = d.radar.map(r => `<div class="note warn"><b>${esc(place(r.label))}</b>: ${esc(tf("db_radar_row", { n: r.this_week, usual: r.usual }))}</div>`).join("");
 
     $("clusters").innerHTML = d.clusters.length ? d.clusters.map((c, i) => `
       <div class="card cluster ${c.linked ? "linked" : ""}">
         <div class="row" style="justify-content:space-between">
           <div>
-            <h3>${esc(c.label)} — ${esc(theme(c))}</h3>
+            <h3>${esc(place(c.label))} — ${esc(theme(c))}</h3>
             <span class="badge p">${esc(tf("db_n_patient", { n: c.patient_count }))}</span>
             <span class="badge s">${esc(tf("db_n_staff", { n: c.staff_count }))}</span>
             ${c.linked ? `<span class="badge linked">${esc(t("db_linked"))}</span>` : ""}
@@ -102,7 +106,7 @@
     $("heat").innerHTML = `<table><thead><tr><th>${esc(t("db_h_place"))}</th><th>${esc(t("db_k_reports"))}</th><th>${esc(t("db_h_ps"))}</th><th>${esc(t("db_h_weeks"))}</th></tr></thead><tbody>` +
       d.heat.map(h => {
         const mx = Math.max(1, ...h.trend);
-        return `<tr><td>${esc(h.label)}</td><td><b>${h.total}</b></td><td>${h.patient} / ${h.staff}</td>
+        return `<tr><td>${esc(place(h.label))}</td><td><b>${h.total}</b></td><td>${h.patient} / ${h.staff}</td>
           <td><span class="spark">${h.trend.map(v => `<i style="height:${Math.max(2, Math.round(22 * v / mx))}px" title="${v}"></i>`).join("")}</span></td></tr>`;
       }).join("") + "</tbody></table>";
 
@@ -111,7 +115,7 @@
       <div class="quote ${f.source === "staff" ? "staff" : ""} ${f.urgent ? "urgent" : ""}">
         <span class="badge ${f.source === "staff" ? "s" : "p"}">${esc(t(f.source === "staff" ? "db_src_staff" : "db_src_patient"))}</span>
         ${f.urgent ? `<span class="badge urgent">${esc(t("db_urgent_b"))}</span>` : ""} ${sevBadge(f.severity)}
-        <span class="small muted">${esc(f.label)} · ${esc(cat(f.category_key, f.category))} · ${esc(f.day)}${f.bucket ? " · " + esc(tr("tb_", f.bucket, f.bucket)) : ""}</span><br>
+        <span class="small muted">${esc(place(f.label))} · ${esc(cat(f.category_key, f.category))} · ${esc(day(f))}${f.bucket ? " · " + esc(tr("tb_", f.bucket, f.bucket)) : ""}</span><br>
         ${esc(f.text)}
         <div><button class="ghost small" onclick="askModal(${f.id})">${esc(t("db_ask"))}</button></div>
       </div>`).join("") : `<p class="muted">${esc(t("db_no_reports"))}</p>`;
@@ -144,13 +148,13 @@
 
   async function rcaModal(i) {
     const c = DATA.clusters[i];
-    openModal(`<h2>${esc(t("db_rca"))}</h2><p class="muted">${esc(c.label)} — ${esc(theme(c))}</p><p>${esc(t("db_thinking"))}</p>`);
+    openModal(`<h2>${esc(t("db_rca"))}</h2><p class="muted">${esc(place(c.label))} — ${esc(theme(c))}</p><p>${esc(t("db_thinking"))}</p>`);
     const r = await fetch("/api/clusters/rca", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: c.key, lang: LANG }) });
     const j = await r.json();
     window._rca = { c, j };
     openModal(`
       <h2>${esc(t("db_rca"))}</h2>
-      <p class="muted">${esc(c.label)} — ${esc(theme(c))}</p>
+      <p class="muted">${esc(place(c.label))} — ${esc(theme(c))}</p>
       <div class="note info small">${esc(tf("db_rca_note", { src: j.source === "llm" ? t("db_ai_llm") : t("db_ai_rules_s") }))}</div>
       <p>${esc(j.summary)}</p>
       <h3>${esc(t("db_why"))}</h3>

@@ -93,6 +93,14 @@ Object.assign(I18N.uz, {
   db_show_less: "Kamroq ko'rsatish",
   qr_ready: "Klinikangiz tayyor.",
   qr_ready_sub: "Bu QR kodni chop eting va osib qo'ying. Kerak bo'lsa, bo'limlarni keyinroq Sozlamalarda qo'shasiz.",
+  db_other_units: "Boshqa bo'limlar (birlashtirilgan)",
+  db_week: "{d} haftasi",
+  po_title: "Fikringizni anonim bildiring",
+  po_sub: "Ismingiz kerak emas",
+  po_scan: "Telefon kamerasi bilan skanerlang",
+  po_staff_band: "Xodimlar uchun",
+  po_staff_title: "Xatolik haqida anonim xabar",
+  po_staff_sub: "Hech kim ayblanmaydi",
 });
 
 Object.assign(I18N.ru, {
@@ -180,6 +188,14 @@ Object.assign(I18N.ru, {
   db_show_less: "Свернуть",
   qr_ready: "Ваша клиника готова.",
   qr_ready_sub: "Распечатайте этот QR-код и повесьте его. Отделения можно добавить позже в Настройках.",
+  db_other_units: "Другие отделения (вместе)",
+  db_week: "неделя с {d}",
+  po_title: "Оставьте отзыв анонимно",
+  po_sub: "Имя не нужно",
+  po_scan: "Наведите камеру телефона",
+  po_staff_band: "Для сотрудников",
+  po_staff_title: "Сообщите об ошибке анонимно",
+  po_staff_sub: "Никого не обвиняют",
 });
 
 Object.assign(I18N.en, {
@@ -266,4 +282,12 @@ Object.assign(I18N.en, {
   db_show_less: "Show less",
   qr_ready: "Your clinic is ready.",
   qr_ready_sub: "Print this QR code and put it up. Add departments later in Settings if you need them.",
+  db_other_units: "Other units (combined)",
+  db_week: "week of {d}",
+  po_title: "Tell us anonymously",
+  po_sub: "No name needed",
+  po_scan: "Scan with your phone camera",
+  po_staff_band: "For staff",
+  po_staff_title: "Report a mistake anonymously",
+  po_staff_sub: "No one is blamed",
 });
