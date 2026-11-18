@@ -75,6 +75,29 @@ Every page is in Uzbek, Russian and English.
   (clinic pages: Dashboard, QR codes, Settings, Log out, with the current page highlighted); the language switch is
   always last. Forms like login and sign-up use the narrow layout (`wrap narrow`) with a full-width button.
 
+## Our competitive edge (what to say)
+
+Today clinics use paper complaint books or boxes, official complaint channels and hotlines, general survey tools or
+Telegram bots, or (rarely) big international incident-reporting systems that are for staff only and mostly in English.
+
+1. **Patients and staff in one place, linked.** Others collect either patient complaints or staff incidents. Ovoz links
+   them: patients complain about waiting at night and nurses report being alone on the night shift in the same ward:
+   one **linked** problem, the real cause. This is our main difference.
+2. **People actually speak up: truly anonymous.** No name, phone, Telegram ID, IP or audio; names hidden automatically;
+   people check what is stored; small groups combined; staff reports week only.
+3. **Built for Uzbekistan.** Voice in Uzbek and Russian (works for anyone, whatever their literacy), Telegram, a QR code
+   on the wall: no app, no sign-in, under 30 seconds.
+4. **It closes the loop.** The case code lets the clinic ask questions and the person answer, still anonymous. The
+   "You said, we did" board shows that speaking up changes things.
+5. **Fixes, not complaints.** Root-cause help (processes, not blame), an action tracker, and the headline number is
+   problems fixed, so clinics are never punished for listening.
+6. **Cheap and fast to start.** Sign up and print a working QR code in a minute; free for small clinics, then priced per
+   department, never per report.
+
+**Be honest about the gaps:** no real-clinic pilot yet; AI sorting needs a model key (otherwise keyword rules); it runs
+from one laptop through a temporary link; no staff roles yet; plans are not enforced in the app. Strongest next step: a
+pilot in one clinic with numbers (reports per week, share linked, problems fixed within 30 days).
+
 ## What to say about privacy
 
 - We store **no** name, phone, Telegram ID, device, IP address or audio. Voice is deleted after transcription,
