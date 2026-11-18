@@ -83,9 +83,10 @@ def _public_text(r):
 
 
 def _public_day(r):
+    """Patients: the day. Staff: only the Monday of that week (the page shows it as "week of …" in its language)."""
     if r["source"] == "patient":
         return r["created_day"]
-    return "week of " + week_start(r["created_day"])
+    return week_start(r["created_day"])
 
 
 def build_dashboard(conn, clinic_id):
@@ -166,7 +167,7 @@ def build_dashboard(conn, clinic_id):
             "category": ai.CATEGORIES[r["category"]][1], "category_key": r["category"],
             "theme": ai.THEMES.get(r["theme"], r["theme"]),
             "severity": r["severity"], "urgent": bool(r["urgent"]), "near_miss": bool(r["near_miss"]),
-            "text": _public_text(r), "day": _public_day(r), "bucket": r["time_bucket"] if r["source"] == "patient" else None,
+            "text": _public_text(r), "day": _public_day(r), "week": r["source"] == "staff", "bucket": r["time_bucket"] if r["source"] == "patient" else None,
         }
 
     urgent = [feed_item(r) for r in reports if r["urgent"] and r["source"] == "patient"][:8]
@@ -176,7 +177,14 @@ def build_dashboard(conn, clinic_id):
     actions = [dict(a) for a in conn.execute(
         "SELECT * FROM actions WHERE clinic_id=? ORDER BY status ASC, id DESC", (clinic_id,))]
 
+    # Place names in Uzbek and Russian (labels are the English department name, a group, or OTHER_LABEL)
+    names = {}
+    for w in conn.execute("SELECT name, name_uz, name_ru FROM wards WHERE clinic_id=?", (clinic_id,)):
+        names[w["name"]] = {"uz": w["name_uz"] or "", "ru": w["name_ru"] or ""}
+
     return {
+        "place_names": names,
+        "other_label": OTHER_LABEL,
         "kpi": {
             "reports": len(reports),
             "patient": sum(1 for r in reports if r["source"] == "patient"),
