@@ -5,12 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Ovoz{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css?v={{ V }}">
+  <link rel="icon" type="image/svg+xml" href="/static/brand/mark-small.svg?v={{ V }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/brand/favicon-32.png?v={{ V }}">
+  <link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png?v={{ V }}">
+  <meta name="theme-color" content="#2563eb">
   {% block head %}{% endblock %}
 </head>
 <body class="{% block bodyclass %}{% endblock %}">
 {% block topbar %}
 <div class="topbar">
-  <a href="/">Ovoz</a>
+  <a href="/" class="brand" aria-label="Ovoz home"><img src="/static/brand/mark.svg?v={{ V }}" alt="" width="28" height="28"><span>ovoz<i>.</i></span></a>
   <div class="nav">
     {% block nav %}{% endblock %}
   </div>
