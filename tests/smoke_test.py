@@ -163,6 +163,11 @@ pages = [anon.get(u).text for u in ("/", "/c/demo", "/c/demo/staff", "/r/" + cod
 pages.append(anon.get("/static/i18n.js").text)
 check("web pages and interface text contain no emojis", not any(_emo.search(x) for x in pages))
 
+# QR codes must scale, not be cropped: a fixed width/height gets cut off by the page's CSS and stops scanning
+qr_page = clinic.get("/qr").text
+check("QR codes scale to the page (viewBox, no fixed size)",
+      'viewBox="0 0 ' in qr_page and not re.search(r'<svg[^>]*class="segno"[^>]*width=|<svg[^>]*width="\d+"[^>]*class="segno"', qr_page))
+
 # attempt limits forget expired connections, so the in-memory store cannot grow without end
 import time as _time  # noqa: E402
 from app import main as _main  # noqa: E402

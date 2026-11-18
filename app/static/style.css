@@ -140,9 +140,9 @@ th { color: var(--muted); font-weight: 600; font-size: .82rem; }
 .msg.reporter { background: #f1f5f9; margin-left: auto; }
 @media print { .topbar, .noprint { display: none !important; } body { background: #fff; } .qr { break-inside: avoid; } }
 .qr { display: inline-block; text-align: center; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 8px; width: 270px; background: #fff; }
-.qr svg { width: 220px; height: 220px; }
+.qr svg { width: 220px; height: 220px; display: block; margin: 0 auto; }
 .qr .tgqr { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 6px; }
-.qr .tgqr svg { width: 96px; height: 96px; }
+.qr .tgqr svg { width: 120px; height: 120px; }
 
 /* "check what will be sent" step */
 .masked { background: #f8fafc; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 6px 0 12px;
