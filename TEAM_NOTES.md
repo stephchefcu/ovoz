@@ -1,8 +1,9 @@
 # Ovoz: team notes
 
 *Ovoz* ("voice") lets patients, relatives and staff report problems in a clinic **anonymously, by voice or text**
-(Uzbek, Russian, English), on the **web** or in **Telegram**. AI hides personal details, sorts reports, links what
-patients and staff say about the same ward, and helps the clinic fix causes. Hackathon problems #7 and #8.
+(Uzbek, Russian, English), on the **web** or in **Telegram**. Ovoz hides personal details, sorts reports, links what
+patients and staff say about the same ward, and helps the clinic fix causes. It runs on keyword rules; an AI model
+(Claude) is ready but switched off. Hackathon problems #7 and #8.
 Every page is in Uzbek, Russian and English.
 
 ## Links
@@ -47,6 +48,7 @@ Every page is in Uzbek, Russian and English.
 - On the dashboard the labels, problem types and root-cause help switch too (the AI model is asked to answer in that
   language). What people wrote stays as written: reports, staff summaries, department names in lists, and actions
   the clinic types.
+- QR posters are printed in the language chosen at the top of the QR page (switch and print again for another one).
 - The text lives in `app/static/i18n.js` (patient, staff, home pages), `app/static/i18n-clinic.js` (clinic pages and the
   board) and `app/ai.py` (root-cause suggestions). The Uzbek and Russian wording is a draft: have native speakers check it.
 
@@ -54,7 +56,7 @@ Every page is in Uzbek, Russian and English.
 
 - **Patient (department QR):** "Help NOW" button (nurse call / 103), I am a patient or a relative,
   good / OK / bad (optional), voice or text, check, send. Under 30 seconds.
-- **Staff (staff-room QR):** department, voice or text, check, send. Staff never pick a category or severity: the AI does.
+- **Staff (staff-room QR):** department, voice or text, check, send. Staff never pick a category or severity: Ovoz does.
 - **Every time, before anything is saved:** a short check screen shows exactly what will be stored: the text with
   names and numbers already hidden, and one line with ward · role · date and part of day. It says "Name, phone and
   voice are not stored", warns about details that could identify someone (e.g. "the only nurse", an age), and they tick
@@ -62,8 +64,11 @@ Every page is in Uzbek, Russian and English.
 - **New clinic:** sign up → it lands on its QR page with one ready department, "Umumiy" (General), so it can print
   a working QR code at once. Real departments are optional: add them later in Settings when you want reports linked
   and fixes per department (small clinics can keep just "Umumiy").
-- **Clinic:** reports are the first box on the dashboard, newest first. Also on the dashboard (headline = problems fixed; linked patient + staff problems; urgent; early warning),
-  root-cause help, actions, "You said, we did" board, questions to reporters via the case code.
+- **Clinic:** reports are the first box on the dashboard, newest first (urgent ones in red). Below: the numbers
+  (headline = problems fixed), early warning, recurring problems with linked patient + staff problems, root-cause help,
+  actions. Also the "You said, we did" board and questions to reporters via the case code.
+- **QR posters** (`/qr`): one big code per department plus one for the staff room, 4 per A4 page. The Telegram bot is
+  offered as a link on the form each code opens, not as a second code.
 
 ## Design rules (keep it simple)
 
@@ -74,6 +79,7 @@ Every page is in Uzbek, Russian and English.
 - One top bar and footer for every page (`app/templates/base.html`). Page links come from `app/templates/_nav.html`
   (clinic pages: Dashboard, QR codes, Settings, Log out, with the current page highlighted); the language switch is
   always last. Forms like login and sign-up use the narrow layout (`wrap narrow`) with a full-width button.
+- One action per screen. A poster has one QR code; a form has one main button.
 
 ## Our competitive edge (what to say)
 
@@ -97,6 +103,27 @@ Telegram bots, or (rarely) big international incident-reporting systems that are
 **Be honest about the gaps:** no real-clinic pilot yet; AI sorting needs a model key (otherwise keyword rules); it runs
 from one laptop through a temporary link; no staff roles yet; no online payment. Strongest next step: a
 pilot in one clinic with numbers (reports per week, share linked, problems fixed within 30 days).
+
+## How it's built
+
+- **Two programs on one machine:** the website (FastAPI, `app/main.py`, pages from Jinja templates plus small JavaScript
+  files) and the Telegram bot (`app/telegram_bot.py`). Both use the same code and one SQLite file (`data/clinic.db`).
+- **Shared code:** `ai.py` (hide names, sort, summaries, root-cause help; Claude when switched on), `voice.py` (VoiceLab,
+  audio deleted), `reports.py` (save reports, case codes), `analytics.py` (dashboard, privacy grouping, linked problems),
+  `clinics.py`, `plans.py`, `terms.py`, `pricing.py`.
+- **Stored:** only text with names hidden, date and part of day, scrambled case codes, hashed passwords. Each clinic only
+  ever sees its own rows.
+- **Weak spot:** everything runs on one laptop behind a temporary tunnel. For a pilot, move it to a small cloud server
+  with a fixed address (the same commands).
+
+## Costs and break-even (rough)
+
+- **Running costs are small:** server about $10–30 a month; Claude (when on) about $2 per busy clinic a month; VoiceLab
+  per minute of audio (check their prices); payment fees a few %. The real cost is people (sales, setup, support).
+- **One Klinika clinic** pays 790,000 so'm a month; after costs about 700,000 stays.
+- **Break-even:** founders unpaid, about 1 paying clinic; a team of 2 at about $800 each, about 32 clinics at full price
+  (about 66 at the 50% founding discount). One Network contract counts like 3–4 clinics. Salaries are assumptions: use
+  your own numbers.
 
 ## What to say about privacy
 
@@ -142,7 +169,8 @@ Three terminal tabs in the project folder:
 ```
 
 New tunnel link → reprint QR codes from `/qr`. Keep the laptop awake (`caffeinate -d`).
-Tests: `python tests/smoke_test.py` and `python tests/telegram_bot_test.py` (every line should say PASS).
+Tests: `python tests/smoke_test.py`, `python tests/telegram_bot_test.py` and `python tests/claude_test.py` (every line
+should say PASS; the Claude test uses a fake server and never calls Anthropic).
 
 **Get the latest code** (after a pull request is merged): in a free tab run `git pull origin main`, then restart the
 web app in its own tab (Ctrl+C, wait for the `ovoz %` line, then the same command). Restart the bot only if its code
@@ -154,6 +182,10 @@ Ctrl+C in the cloudflared tab.
   still running (for example from a closed window). Stop all old copies, check nothing is left, then start each again:
   `pkill -f "uvicorn app.main:app"; pkill -f "app.telegram_bot"` and `pgrep -fl "uvicorn|telegram_bot"` (prints nothing).
 - `Conflict` still there: the bot is running on another computer with the same token. Only one copy may run.
+- Pages show raw names like `po_title`, an old look, or the web app tab shows an error trace after an update: the old
+  web app is still running. Ctrl+C in its tab, `pkill -f "uvicorn app.main:app"`, start it again, then reload the
+  browser without its cache (Safari: Cmd+Option+R).
+- After a pull that changes `requirements.txt`, install once: `.venv/bin/pip install -r requirements.txt`.
 - `git pull` refuses because of local changes: `git stash push -u -m "laptop changes"`, then pull again (the changes
   are kept in the stash).
 - Starting everything over (Cmd+Q) also stops the tunnel: the link changes, so update it here and reprint the QR codes.
@@ -195,7 +227,7 @@ Telegram picture, app icon, browser tab.
 
 1. Scan a department QR on a phone: tap Patient, a face, record a voice note in Uzbek.
 2. Show the check screen: the hidden name, "Name, phone and voice are not stored", "I agree". Send, get the code.
-3. Staff side in Telegram: one voice note, AI decides it's a near-miss.
+3. Staff side in Telegram: one voice note; Ovoz decides it's a near-miss.
 4. Dashboard: the same ward appears as a **linked** problem (patients + staff), root-cause help, create an action.
 5. Mark it done: it shows on the "You said, we did" board; reply to the reporter via the case code.
 6. Switch the dashboard to **RU** or **UZ**: the whole page and the root-cause help change language.
