@@ -183,3 +183,12 @@ label.agree input { width: 24px; height: 24px; margin-top: 1px; flex: none; acce
 .cardlink .ico { color: var(--brand); margin-top: 2px; }
 .kpi .ico { color: var(--brand); }
 .card > div:first-child > .step:first-child { margin-top: 0; }
+
+/* ---- brand (mark: app/static/brand) ---- */
+.topbar > a.brand { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-size: 1.25rem; }
+.brand img { display: block; }
+.brand i { font-style: normal; color: var(--brand); }
+.hero .brand-mark { width: 64px; height: 64px; display: block; margin-bottom: 10px; }
+.qr .qr-brand { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: var(--ink); margin-bottom: 6px; }
+.qr .qr-brand img { width: 22px; height: 22px; }
+.qr .qr-brand i { font-style: normal; color: var(--brand); }
