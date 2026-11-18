@@ -59,7 +59,10 @@ Every page is in Uzbek, Russian and English.
   names and numbers already hidden, and one line with ward · role · date and part of day. It says "Name, phone and
   voice are not stored", warns about details that could identify someone (e.g. "the only nurse", an age), and they tick
   "I agree to the terms". Then they get a case code and a "See the reply" button.
-- **Clinic:** dashboard (headline = problems fixed; linked patient + staff problems; urgent; early warning),
+- **New clinic:** sign up → it lands on its QR page with one ready department, "Umumiy" (General), so it can print
+  a working QR code at once. Real departments are optional: add them later in Settings when you want reports linked
+  and fixes per department (small clinics can keep just "Umumiy").
+- **Clinic:** reports are the first box on the dashboard, newest first. Also on the dashboard (headline = problems fixed; linked patient + staff problems; urgent; early warning),
   root-cause help, actions, "You said, we did" board, questions to reporters via the case code.
 
 ## Design rules (keep it simple)

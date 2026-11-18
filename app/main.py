@@ -355,7 +355,9 @@ def signup(request: Request, name: str = Form(...), slug: str = Form(""), contac
             form["slug"] = slug
             return fail("su_err_taken", f"The clinic code “{slug}” is taken. Please choose another one.", slug)
         cid = clinics.create(conn, name, slug, password, contact)
-    return _login_response(cid, "/settings?new=1")
+        # One ready department, so the clinic gets a working QR code at once; real departments can come later
+        clinics.add_ward(conn, cid, "General", "Umumiy", "Общее", "General")
+    return _login_response(cid, "/qr?new=1")
 
 
 @app.get("/login", response_class=HTMLResponse)
@@ -541,7 +543,7 @@ def api_clinic_ask(body: AskIn, request: Request):
 
 
 @app.get("/qr", response_class=HTMLResponse)
-def qr_sheet(request: Request):
+def qr_sheet(request: Request, new: int = 0):
     """Printable sheet: one QR code per WARD (not per room, so a report cannot point to one patient),
     plus a Telegram QR per ward and the staff links."""
     cid = current_clinic(request)
@@ -559,7 +561,7 @@ def qr_sheet(request: Request):
     staff_url = f"{base}/c/{c['slug']}/staff"
     staff_tg = tg_link("s_" + c["slug"])  # opens the bot straight in the staff form
     return templates.TemplateResponse(request, "qrsheet.html", {
-        "wards": wards, "clinic": c, "staff_url": staff_url, "staff_svg": qr_svg(staff_url),
+        "new": bool(new), "wards": wards, "clinic": c, "staff_url": staff_url, "staff_svg": qr_svg(staff_url),
         "staff_tg_svg": qr_svg(staff_tg, scale=3) if staff_tg else None, "bot": bot_username()})
 
 

@@ -28,7 +28,7 @@ Object.assign(I18N.uz, {
   bd_did: "Biz qildik", bd_none: "Hozircha yakunlangan o'zgarishlar yo'q. Har bir murojaat o'qiladi — fikringiz uchun rahmat.",
   // QR sheet
   qr_title: "Chop etish uchun QR kodlar",
-  qr_sub: "Har bir bo'lim uchun bitta kod (xona uchun emas), shunda murojaat bitta bemorga ishora qilmaydi. Sahifani chop eting va har bir kodni bemorlar va qarindoshlar ko'radigan joyga osib qo'ying.",
+  qr_sub: "Har bir bo'lim uchun bitta kod. Chop eting va bemorlar ko'radigan joyga osib qo'ying.",
   qr_tg: "Kichik kod Telegram botni shu bo'lim tanlangan holda ochadi.", qr_staff: "Oxirgi plakat xodimlar xonasi uchun.",
   qr_print: "Chop etish", qr_none: "Hali bo'limlar yo'q.", qr_add: "Avval ularni Sozlamalarda qo'shing.",
   qr_code: "Telegram bot uchun klinika kodi:",
@@ -91,6 +91,8 @@ Object.assign(I18N.uz, {
   db_no_reports: "Hali murojaatlar yo'q. Sinab ko'rish uchun QR kodni skanerlang.",
   db_show_all: "Hammasini ko'rsatish ({n})",
   db_show_less: "Kamroq ko'rsatish",
+  qr_ready: "Klinikangiz tayyor.",
+  qr_ready_sub: "Bu QR kodni chop eting va osib qo'ying. Kerak bo'lsa, bo'limlarni keyinroq Sozlamalarda qo'shasiz.",
 });
 
 Object.assign(I18N.ru, {
@@ -116,7 +118,7 @@ Object.assign(I18N.ru, {
   bd_title: "Вы сказали — мы сделали", bd_sub: "изменения, сделанные благодаря отзывам пациентов и сотрудников",
   bd_did: "Мы сделали", bd_none: "Пока нет завершённых изменений. Каждое обращение читают — спасибо, что высказались.",
   qr_title: "QR-коды для печати",
-  qr_sub: "Один код на отделение (не на палату), чтобы обращение нельзя было связать с одним пациентом. Распечатайте страницу и разместите каждый код там, где его видят пациенты и родственники.",
+  qr_sub: "Один код на отделение. Распечатайте и повесьте там, где его видят пациенты.",
   qr_tg: "Маленький код открывает Telegram-бота сразу с этим отделением.", qr_staff: "Последний плакат — для комнаты персонала.",
   qr_print: "Печать", qr_none: "Отделений пока нет.", qr_add: "Сначала добавьте их в Настройках.",
   qr_code: "Код клиники для Telegram-бота:",
@@ -176,6 +178,8 @@ Object.assign(I18N.ru, {
   db_no_reports: "Обращений пока нет. Отсканируйте QR-код, чтобы отправить тестовое.",
   db_show_all: "Показать все ({n})",
   db_show_less: "Свернуть",
+  qr_ready: "Ваша клиника готова.",
+  qr_ready_sub: "Распечатайте этот QR-код и повесьте его. Отделения можно добавить позже в Настройках.",
 });
 
 Object.assign(I18N.en, {
@@ -200,7 +204,7 @@ Object.assign(I18N.en, {
   bd_title: "You said, we did", bd_sub: "changes made because patients and staff spoke up", bd_did: "We did",
   bd_none: "No completed changes yet. Every report is read — thank you for speaking up.",
   qr_title: "Printable QR codes",
-  qr_sub: "One code per department (not per room), so a report cannot point to a single patient. Print this page and post each code where patients and relatives can see it.",
+  qr_sub: "One code per department. Print it and put it where patients can see it.",
   qr_tg: "The small code opens the Telegram bot already set to that department.", qr_staff: "The last poster is for the staff room.",
   qr_print: "Print", qr_none: "No departments yet.", qr_add: "Add them in Settings first.", qr_code: "Clinic code for the Telegram bot:",
   st_ready: "Your clinic is ready.", st_next: "Next: add your departments below, then print your QR codes.",
@@ -260,4 +264,6 @@ Object.assign(I18N.en, {
   db_no_reports: "No reports yet. Scan a QR code to send a test one.",
   db_show_all: "Show all ({n})",
   db_show_less: "Show less",
+  qr_ready: "Your clinic is ready.",
+  qr_ready_sub: "Print this QR code and put it up. Add departments later in Settings if you need them.",
 });
