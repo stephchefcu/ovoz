@@ -1,15 +1,22 @@
-"""Speech-to-text via VoiceLab (Aisha AI).
+"""Speech-to-text. API keys stay on the server; the browser never sees them.
 
-- The API key stays on the server (X-Api-Key header); the browser never sees it.
-- Endpoint used: POST {AISHA_BASE}/api/v1/stt/post/  with form fields `audio` (file) and `language`.
-  Short clips only (synchronous). For longer audio use the asynchronous v2 endpoints from the docs.
-- Audio is held in memory / a temp file and deleted immediately. It is never stored.
-- VERIFY in the official docs: accepted formats, size/duration limits, and the exact response field names.
-  The parser below tries common field names and falls back to the first string it finds.
+VoiceLab (https://docs.voicelab.uz/api/stt), used when the key starts with "vlk_":
+- POST {VOICELAB_BASE}/v1/stt  (Authorization: Bearer, Idempotency-Key, form fields `audio`, `language`)
+  returns a job id; GET /v1/stt/transcriptions/{id} until status is "completed"; read `transcript`.
+- VoiceLab keeps transcripts and source audio by default, so the job is DELETED right after we read it.
+- The key needs Speech to text = Access (write to submit and delete, read to poll).
+- Accepts WebM/Opus, OGG/Opus, M4A/AAC, WAV, MP3, FLAC directly (no conversion needed).
+
+Aisha (legacy, any other key in AISHA_API_KEY):
+- POST {AISHA_BASE}/api/v1/stt/post/ with the X-Api-Key header, form fields `audio` and `language`.
+
+Audio is held in memory / a temp file here and never stored by this app.
 """
 import os
 import subprocess
 import tempfile
+import time
+import uuid
 
 import httpx
 
@@ -22,6 +29,67 @@ DEMO_TRANSCRIPTS = {
 }
 
 LANG_CODES = {"uz": "uz", "ru": "ru", "en": "en"}
+
+AUDIO_TYPES = {".webm": "audio/webm", ".ogg": "audio/ogg", ".oga": "audio/ogg", ".opus": "audio/ogg",
+               ".m4a": "audio/mp4", ".mp4": "audio/mp4", ".aac": "audio/aac", ".wav": "audio/wav",
+               ".mp3": "audio/mpeg", ".flac": "audio/flac"}
+POLL_TIMEOUT = 120  # seconds to wait for VoiceLab to finish one clip
+
+
+def provider():
+    """Which speech service is configured: "voicelab", "aisha", or False (demo transcripts)."""
+    if config.VOICELAB_API_KEY:
+        return "voicelab"
+    if config.AISHA_API_KEY:
+        return "aisha"
+    return False
+
+
+def _fail(msg):
+    return {"text": "", "demo": False, "error": msg}
+
+
+def _voicelab(audio: bytes, filename: str, lang: str):
+    ext = os.path.splitext(filename or "")[1].lower() or ".webm"
+    ctype = AUDIO_TYPES.get(ext, "application/octet-stream")
+    auth = {"Authorization": f"Bearer {config.VOICELAB_API_KEY}"}
+    with httpx.Client(base_url=config.VOICELAB_BASE, headers=auth, timeout=30) as c:
+        r = c.post("/v1/stt", headers={"Idempotency-Key": str(uuid.uuid4())},
+                   files={"audio": ("audio" + ext, audio, ctype)},
+                   data={"language": lang, "include_speakers": "false"}, timeout=90)
+        if r.status_code >= 400:
+            return _fail(f"speech service error {r.status_code}")
+        job = r.json()
+        job_id = job.get("id")
+        if not job_id:
+            return _fail("speech service returned no job id")
+        try:
+            data, deadline = job, time.time() + POLL_TIMEOUT
+            while data.get("status") not in ("completed", "failed"):
+                if time.time() > deadline:
+                    return _fail("speech service timed out")
+                try:
+                    wait = float(r.headers.get("Retry-After", "1"))
+                except ValueError:
+                    wait = 1.0
+                time.sleep(min(max(wait, 0.5), 5))
+                r = c.get(f"/v1/stt/transcriptions/{job_id}")
+                if r.status_code >= 400:
+                    return _fail(f"speech service error {r.status_code}")
+                data = r.json()
+            if data.get("status") == "failed":
+                return _fail("speech service could not transcribe the audio")
+            text = (data.get("transcript") or "").strip()
+            if not text:
+                text = " ".join((s.get("text") or "").strip() for s in data.get("segments") or []).strip()
+            if not text:
+                return _fail("no speech recognised")
+            return {"text": text, "demo": False, "error": None}
+        finally:
+            try:  # do not leave the transcript or audio on VoiceLab's servers
+                c.delete(f"/v1/stt/transcriptions/{job_id}")
+            except Exception:
+                pass
 
 
 def _extract_text(data):
@@ -67,6 +135,11 @@ def _post(path: str, filename: str, lang: str):
 def transcribe(audio: bytes, filename: str, lang: str):
     """Returns {"text": str, "demo": bool, "error": str|None}."""
     lang = lang if lang in LANG_CODES else "uz"
+    if provider() == "voicelab":
+        try:
+            return _voicelab(audio, filename, lang)
+        except Exception as e:  # network, timeout, bad json
+            return _fail(f"speech service unavailable ({type(e).__name__})")
     if not config.AISHA_API_KEY:
         return {"text": DEMO_TRANSCRIPTS[lang], "demo": True, "error": None}
 

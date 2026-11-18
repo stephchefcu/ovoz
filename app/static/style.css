@@ -100,3 +100,10 @@ th { color: var(--muted); font-weight: 600; font-size: .82rem; }
 @media print { .topbar, .noprint { display: none !important; } body { background: #fff; } .qr { break-inside: avoid; } }
 .qr { display: inline-block; text-align: center; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 8px; width: 270px; }
 .qr svg { width: 220px; height: 220px; }
+/* "check what will be sent" step */
+.masked { background: #f6f8fa; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 6px 0 12px;
+  white-space: pre-wrap; overflow-wrap: anywhere; }
+table.rv { margin-bottom: 12px; }
+table.rv th { width: 38%; }
+label.agree { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; margin-top: 12px; cursor: pointer; }
+label.agree input { width: 22px; height: 22px; margin-top: 2px; flex: none; }

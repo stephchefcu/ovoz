@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Terms & privacy · Ovoz{% endblock %}
+{% block nav %}
+  <div class="lang"><button data-l="uz">UZ</button><button data-l="ru">RU</button><button data-l="en">EN</button></div>
+{% endblock %}
+{% block content %}
+<div class="wrap">
+  {% for t in texts %}
+  <div data-lang-block="{{ t.lang }}"{% if t.lang != "uz" %} class="hidden"{% endif %}>
+    <h1>{{ t.title }}</h1>
+    <p class="muted">{{ t.intro }}</p>
+    {% for heading, items in t.sections %}
+    <div class="card">
+      <h3 style="margin-top:0">{{ heading }}</h3>
+      <ul>{% for i in items %}<li>{{ i }}</li>{% endfor %}</ul>
+    </div>
+    {% endfor %}
+    <p class="small muted">{{ t.version_label }}: {{ t.version }}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/i18n.js"></script>{% endblock %}

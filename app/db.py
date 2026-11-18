@@ -76,6 +76,17 @@ def db():
         conn.close()
 
 
+# Columns added after the first version; added in place so existing data (and ward codes / QR codes) survive.
+MIGRATIONS = [
+    ("wards", "name_uz", "TEXT"),          # department name in Uzbek (falls back to `name`)
+    ("wards", "name_ru", "TEXT"),          # department name in Russian (falls back to `name`)
+    ("reports", "terms_version", "TEXT"),  # which Terms & Privacy version the reporter agreed to
+]
+
+
 def init_db():
     with db() as conn:
         conn.executescript(SCHEMA)
+        for table, col, typ in MIGRATIONS:
+            if col not in [r[1] for r in conn.execute(f"PRAGMA table_info({table})")]:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typ}")

@@ -1,12 +1,10 @@
 import hashlib
 import hmac
 import io
-import json
-import random
 import secrets
 import time
 from collections import defaultdict, deque
-from datetime import date, datetime, timedelta, timezone
+from datetime import date
 from pathlib import Path
 from typing import Optional
 
@@ -18,14 +16,14 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
-from . import ai, analytics, config, voice
+from . import ai, analytics, config, reports, terms, voice
 from .db import db, init_db
-from .util import hash_code, new_case_code
 
 APP_DIR = Path(__file__).resolve().parent
-app = FastAPI(title="Clinic Safety & Feedback Platform")
+app = FastAPI(title="Ovoz")
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
+templates.env.globals["TERMS_VERSION"] = terms.TERMS_VERSION
 
 init_db()
 
@@ -85,8 +83,7 @@ def require_clinic(request: Request):
         raise HTTPException(status_code=401, detail="login required")
 
 
-def ward_list(conn):
-    return [dict(r) for r in conn.execute("SELECT code, name, unit FROM wards ORDER BY unit, name")]
+ward_list = reports.ward_list
 
 
 # --------------------------------------------------------------------------------------
@@ -113,6 +110,12 @@ def staff_page(request: Request):
     with db() as conn:
         wards = ward_list(conn)
     return templates.TemplateResponse(request, "staff.html", {"wards": wards})
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page(request: Request):
+    return templates.TemplateResponse(request, "privacy.html",
+                                      {"texts": [terms.terms(lang) for lang in ("uz", "ru", "en")]})
 
 
 @app.get("/case", response_class=HTMLResponse)
@@ -145,29 +148,41 @@ class ReportIn(BaseModel):
     rating: Optional[int] = Field(default=None, ge=1, le=5)
     harm: str = Field(default="none", pattern="^(none|minor|serious)$")
     near_miss: bool = False
+    agree: bool = False          # the person ticked "I agree" after seeing exactly what is sent
+    terms_version: str = ""      # the Terms & Privacy version they saw
+
+
+def require_agreement(agree: bool, version: str):
+    if not agree:
+        raise HTTPException(400, "terms_not_accepted")
+    if version != terms.TERMS_VERSION:  # the page is out of date: they must see the current terms
+        raise HTTPException(409, "terms_changed")
+
+
+class PreviewIn(BaseModel):
+    text: str = Field(min_length=1, max_length=3000)
+
+
+@app.post("/api/preview")
+def preview(body: PreviewIn, request: Request):
+    """Exactly what would be stored: the masked text, the date and the part of the day. Nothing is saved."""
+    if rate_limited(request, "preview", limit=60):
+        raise HTTPException(429, "too many requests")
+    now = analytics.local_now()
+    return {"masked": ai.mask_text(body.text), "date": now.date().isoformat(),
+            "time_bucket": analytics.time_bucket(now), "terms_version": terms.TERMS_VERSION}
 
 
 @app.post("/api/report")
 def create_report(body: ReportIn, request: Request):
+    require_agreement(body.agree, body.terms_version)
     if rate_limited(request, "report"):
         raise HTTPException(429, "too many reports from this connection, try again later")
     with db() as conn:
-        if not conn.execute("SELECT 1 FROM wards WHERE code=?", (body.ward_code,)).fetchone():
+        if not reports.ward_exists(conn, body.ward_code):
             raise HTTPException(400, "unknown ward")
-        result = ai.analyze(body.text, body.source, body.harm, body.near_miss)
-        now = analytics.local_now()
-        delay = random.uniform(0, config.STAFF_DELAY_HOURS) * 3600 if body.source == "staff" else 0
-        release_at = (datetime.now(timezone.utc) + timedelta(seconds=delay)).strftime("%Y-%m-%dT%H:%M:%S")
-        code = new_case_code()
-        conn.execute(
-            "INSERT INTO reports (source, ward_code, text_masked, summary, category, theme, severity, urgent, "
-            "near_miss, rating, lang, created_day, time_bucket, release_at, case_hash) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (body.source, body.ward_code, result["masked"], result["summary"], result["category"], result["theme"],
-             result["severity"], int(result["urgent"]), int(result["near_miss"]), body.rating, body.lang,
-             now.date().isoformat(), analytics.time_bucket(now), release_at, hash_code(code)),
-        )
-    return {"case_code": code, "urgent": result["urgent"]}
+        return reports.save_report(conn, body.source, body.ward_code, body.text, body.lang,
+                                   body.rating, body.harm, body.near_miss, terms_version=body.terms_version)
 
 
 @app.post("/api/transcribe")
@@ -190,12 +205,8 @@ class CaseOpen(BaseModel):
 class CaseReply(BaseModel):
     code: str
     body: str = Field(min_length=1, max_length=2000)
-
-
-def _find_case(conn, code):
-    h = hash_code(code)
-    exists = conn.execute("SELECT 1 FROM reports WHERE case_hash=?", (h,)).fetchone()
-    return h if exists else None
+    agree: bool = False
+    terms_version: str = ""
 
 
 @app.post("/api/case/open")
@@ -203,25 +214,20 @@ def case_open(body: CaseOpen, request: Request):
     if rate_limited(request, "case", limit=15):
         raise HTTPException(429, "too many attempts")
     with db() as conn:
-        h = _find_case(conn, body.code)
-        if not h:
-            raise HTTPException(404, "code not found")
-        msgs = [dict(r) for r in conn.execute(
-            "SELECT sender, body, created_day FROM case_messages WHERE case_hash=? ORDER BY id", (h,))]
+        msgs = reports.case_messages(conn, body.code)
+    if msgs is None:
+        raise HTTPException(404, "code not found")
     return {"messages": msgs}
 
 
 @app.post("/api/case/reply")
 def case_reply(body: CaseReply, request: Request):
+    require_agreement(body.agree, body.terms_version)
     if rate_limited(request, "case", limit=15):
         raise HTTPException(429, "too many attempts")
     with db() as conn:
-        h = _find_case(conn, body.code)
-        if not h:
+        if not reports.add_reporter_reply(conn, body.code, body.body):
             raise HTTPException(404, "code not found")
-        # the reporter's reply is masked too, in case they type names or numbers
-        conn.execute("INSERT INTO case_messages (case_hash, sender, body, created_day) VALUES (?,?,?,?)",
-                     (h, "reporter", ai.mask_text(body.body), date.today().isoformat()))
     return {"ok": True}
 
 
@@ -347,4 +353,4 @@ def qr_sheet(request: Request):
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "llm": ai.llm_enabled(), "voice": bool(config.AISHA_API_KEY)}
+    return {"ok": True, "llm": ai.llm_enabled(), "voice": voice.provider()}

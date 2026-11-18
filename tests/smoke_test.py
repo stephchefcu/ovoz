@@ -5,6 +5,10 @@ import sys
 import tempfile
 
 os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "test.db")
+# Ignore the real .env: demo password, no paid speech or LLM calls.
+os.environ.update({"CLINIC_PASSWORD": "demo", "SESSION_SECRET": "smoke-test-secret", "VOICELAB_API_KEY": "",
+                   "AISHA_API_KEY": "", "LLM_BASE_URL": "", "LLM_API_KEY": "", "LLM_MODEL": "",
+                   "STAFF_RELEASE_DELAY_HOURS": "0", "K_MIN": "3"})
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -37,12 +41,35 @@ check("a cross-channel linked problem is found", d["kpi"]["linked_clusters"] >= 
 check("small groups are hidden or rolled up", d["kpi"]["hidden_small_groups"] > 0 and all(c["total"] >= d["privacy"]["k_min"] for c in d["clusters"]))
 check("staff reports show summaries only", all("[" not in f["text"] or f["source"] == "patient" for f in d["feed"]))
 
-r = anon.post("/api/report", json={"source": "patient", "ward_code": codes["Therapy ward"], "text": "Tualet iflos, hid keladi.", "lang": "uz"})
+from app import terms  # noqa: E402
+TV = terms.TERMS_VERSION
+report = {"source": "patient", "ward_code": codes["Therapy ward"], "text": "Tualet iflos, hid keladi.", "lang": "uz"}
+check("report without agreeing is refused", anon.post("/api/report", json=report).status_code == 400)
+check("report agreeing to old terms is refused",
+      anon.post("/api/report", json={**report, "agree": True, "terms_version": "old"}).status_code == 409)
+pv = anon.post("/api/preview", json={"text": "Hamshira Dilnoza kelmadi, tel 901234567"}).json()
+check("preview shows the masked text and saves nothing",
+      "[NAME]" in pv["masked"] and "[PHONE]" in pv["masked"] and "Dilnoza" not in pv["masked"] and pv["time_bucket"])
+r = anon.post("/api/report", json={**report, "agree": True, "terms_version": TV})
 check("anonymous report accepted + case code", r.status_code == 200 and re.match(r"^[A-Z0-9]{4}-[A-Z0-9]{4}$", r.json()["case_code"]))
 code = r.json()["case_code"]
+from app.db import db  # noqa: E402
+from app.util import hash_code  # noqa: E402
+with db() as conn:
+    stored = conn.execute("SELECT terms_version FROM reports WHERE case_hash=?", (hash_code(code),)).fetchone()
+check("agreed terms version stored with the report", stored and stored["terms_version"] == TV)
+check("reply without agreeing is refused", anon.post("/api/case/reply", json={"code": code, "body": "hi"}).status_code == 400)
+check("reply after agreeing is accepted",
+      anon.post("/api/case/reply", json={"code": code, "body": "Dushanba kuni", "agree": True, "terms_version": TV}).status_code == 200)
+pg = anon.get("/privacy").text
+check("privacy page in all three languages",
+      all(x in pg for x in ("Foydalanish shartlari va maxfiylik", "Условия использования", "Terms of use and privacy", TV)))
+pt = anon.get("/r/" + codes["Therapy ward"]).text
+check("patient page carries Uzbek and Russian department names", "Terapiya bo&#39;limi" in pt or "Terapiya bo'limi" in pt)
 rid = clinic.get("/api/dashboard").json()["feed"][0]["id"]
 check("clinic can ask a question", clinic.post("/api/clinic/ask", json={"report_id": rid, "body": "Which day?"}).status_code == 200)
-check("reporter sees the question by code", len(anon.post("/api/case/open", json={"code": code}).json()["messages"]) == 1)
+check("reporter sees the question and their reply by code",
+      [m["sender"] for m in anon.post("/api/case/open", json={"code": code}).json()["messages"]] == ["reporter", "clinic"])
 check("wrong code rejected", anon.post("/api/case/open", json={"code": "AAAA-AAAA"}).status_code == 404)
 check("RCA works", clinic.post("/api/clusters/rca", json={"key": d["clusters"][0]["key"]}).json()["fixes"])
 check("demo transcription works", anon.post("/api/transcribe", files={"audio": ("v.webm", b"x", "audio/webm")}, data={"lang": "uz"}).json()["text"])
