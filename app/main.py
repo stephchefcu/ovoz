@@ -122,8 +122,11 @@ def tg_link(payload: str) -> Optional[str]:
 
 
 def qr_svg(url: str, scale: int = 6) -> str:
+    """QR code as SVG that scales to whatever size the page gives it (viewBox, no fixed width/height):
+    a fixed size would be cropped, not shrunk, and a cropped QR code does not scan.
+    Border 4 = the quiet zone the QR standard asks for, so phones find the code easily."""
     buf = io.BytesIO()
-    segno.make(url, error="m").save(buf, kind="svg", scale=scale, border=2, xmldecl=False, svgns=True)
+    segno.make(url, error="m").save(buf, kind="svg", scale=scale, border=4, xmldecl=False, svgns=True, omitsize=True)
     return buf.getvalue().decode()
 
 
