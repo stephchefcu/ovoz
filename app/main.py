@@ -25,7 +25,6 @@ app = FastAPI(title="Ovoz")
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 templates.env.globals["TERMS_VERSION"] = terms.TERMS_VERSION
-templates.env.globals["PLAN_UI"] = plans.UI
 templates.env.globals["V"] = str(int(time.time()))  # cache-buster: browsers reload CSS/JS after a restart
 
 init_db()
@@ -396,7 +395,6 @@ def settings_page(request: Request, new: int = 0):
         c = clinics.get(conn, cid)
         plan = plans.summary(conn, cid)
     return templates.TemplateResponse(request, "settings.html", {"clinic": c, "new": bool(new), "plan": plan,
-                                                                 "contact": config.SALES_CONTACT,
                                                                  "base": str(request.base_url).rstrip("/")})
 
 
@@ -477,8 +475,7 @@ def dashboard_page(request: Request):
     with db() as conn:
         c = clinics.get(conn, cid)
         plan = plans.summary(conn, cid)
-    return templates.TemplateResponse(request, "dashboard.html", {"clinic": c, "plan": plan,
-                                                                  "contact": config.SALES_CONTACT})
+    return templates.TemplateResponse(request, "dashboard.html", {"clinic": c, "plan": plan})
 
 
 @app.get("/api/dashboard")

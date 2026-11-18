@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "_plan.html" import plan_note, plan_card %}
 {% block title %}Settings · {{ clinic.name }} · Ovoz{% endblock %}
 {% from "_nav.html" import clinic_nav %}
 {% block nav %}{{ clinic_nav("settings") }}{% endblock %}
@@ -16,8 +15,8 @@
   </div>
   {% endif %}
 
-  {{ plan_note(plan, contact) }}
-  {{ plan_card(plan, contact) }}
+  <div id="plannote" data-plan='{{ plan | tojson }}'></div>
+  <div data-plan='{{ plan | tojson }}' data-plan-line style="margin:0 0 12px"></div>
 
   <div class="card">
     <h2 style="margin-top:0" data-i18n="st_deps">Departments</h2>
@@ -111,8 +110,7 @@
     });
   }
 
-  const LIMIT_TEXT = {{ PLAN_UI | tojson }};
-  const LIMIT_MSG_FOR = () => (LIMIT_TEXT[LANG] || LIMIT_TEXT.en).limit.replace("{n}", {{ plan.departments | tojson }});
+  const LIMIT_MSG_FOR = () => tf("pl_limit", { n: {{ plan.departments | tojson }} });
   $("add").addEventListener("click", async () => {
     $("w_err").classList.add("hidden");
     const b = { name: $("n_name").value.trim(), name_uz: $("n_uz").value.trim(), name_ru: $("n_ru").value.trim(), unit: $("n_unit").value.trim() };
