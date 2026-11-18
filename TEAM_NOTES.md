@@ -138,8 +138,10 @@ pilot in one clinic with numbers (reports per week, share linked, problems fixed
 ## Honest limits
 
 - Name hiding is rule-based and can miss names; the privacy check helps, a language model would do better.
-- Triage uses keyword rules. Claude Sonnet 5.5 is ready but **off**: to switch it on, run `pip install -r requirements.txt`,
-  put `ANTHROPIC_API_KEY=...` in `.env` and restart the web app and the bot (`/api/health` then shows `"llm": "claude"`).
+- Triage uses keyword rules. Claude Sonnet 5.5 is ready but **off**. It needs **Python 3.10 or newer** (the demo laptop
+  has 3.9, so there it stays off: with a key set, the app prints one warning and keeps the rules). To switch it on, on
+  Python 3.10+: run `pip install -r requirements.txt`, put `ANTHROPIC_API_KEY=...` in `.env` and restart the web app and
+  the bot (`/api/health` then shows `"llm": "claude"`).
   About $2 per busy clinic per month. Only text with names already hidden is sent; if Claude is down, the rules take over.
 - One shared password per clinic: no roles yet.
 - Not built (say "in our pilot design"): instant duty-manager alert, roles (ward head, quality coordinator),
@@ -155,6 +157,8 @@ pilot in one clinic with numbers (reports per week, share linked, problems fixed
 - `CLINIC_PASSWORD`: the demo clinic's password. Without it, the password is `demo`.
 - Optional: `VOICELAB_API_KEY` for real voice (otherwise demo text is filled in), `ANTHROPIC_API_KEY` for AI sorting with Claude (off until set),
   `TELEGRAM_BOT_TOKEN` for the bot.
+- `SIGNUP_CODE`: set it before sharing the link. The code and the demo link are public, so without it anyone can create
+  a clinic at `/signup` (one stranger clinic, "AI Hackathon Tashkent", already did).
 
 Three terminal tabs in the project folder:
 
@@ -170,11 +174,12 @@ Three terminal tabs in the project folder:
 
 New tunnel link → reprint QR codes from `/qr`. Keep the laptop awake (`caffeinate -d`).
 Tests: `python tests/smoke_test.py`, `python tests/telegram_bot_test.py` and `python tests/claude_test.py` (every line
-should say PASS; the Claude test uses a fake server and never calls Anthropic).
+should say PASS; the Claude test uses a fake server and never calls Anthropic, and prints SKIP on Python 3.9).
 
 **Get the latest code** (after a pull request is merged): in a free tab run `git pull origin main`, then restart the
-web app in its own tab (Ctrl+C, wait for the `ovoz %` line, then the same command). Restart the bot only if its code
-changed. The tunnel can keep running, so the link stays the same. Tab titles show which program runs where; never press
+web app **and the bot**, each in its own tab (Ctrl+C, wait for the `ovoz %` line, then the same command). Restart the
+bot every time: it shares `ai.py`, `reports.py`, `plans.py` and more with the web app, and a bot left running keeps the
+old code (once it kept older, weaker name hiding for hours). The tunnel can keep running, so the link stays the same. Tab titles show which program runs where; never press
 Ctrl+C in the cloudflared tab.
 
 **If something won't start:**
@@ -186,10 +191,24 @@ Ctrl+C in the cloudflared tab.
   web app is still running. Ctrl+C in its tab, `pkill -f "uvicorn app.main:app"`, start it again, then reload the
   browser without its cache (Safari: Cmd+Option+R).
 - After a pull that changes `requirements.txt`, install once: `.venv/bin/pip install -r requirements.txt`.
-- `git pull` refuses because of local changes: `git stash push -u -m "laptop changes"`, then pull again (the changes
-  are kept in the stash).
+- `git pull` refuses because of local changes: first find out whose they are (`git status`). Those changes may be
+  someone else's unfinished work (see "Working together"). Do not stash or discard them; ask, or let their owner commit.
 - Starting everything over (Cmd+Q) also stops the tunnel: the link changes, so update it here and reprint the QR codes.
-Code: https://github.com/stephchefcu/ovoz (public). Keys live only in `.env`: never commit it.
+- Keys live only in `.env`: never commit it. The repository is public.
+
+## Working together (several people or Claude sessions, one folder)
+
+One project folder has one set of files and one current branch, shared by everyone working in it. Lessons from
+18 November, when three Claude sessions worked here at once:
+- **Before you change anything, run `git status`.** Changes you did not make belong to someone still working: leave them.
+- **Never switch branches, stash, `git pull` or `git reset` while others have uncommitted changes:** it moves their work
+  too (one stash that day swept up three sessions' work).
+- **Commit only your own files** (`git add <your files>`, never `git add -A`), on your own branch, then open a pull
+  request. If the folder must stay on its branch, work in a separate copy: `git worktree add -b <branch> ../ovoz-<name> origin/main`.
+- **Pull requests merge one at a time:** if main changed since you tested, merge main into your branch and test again.
+- **After merging,** delete the branch. Restarting the web app or bot loads whatever is in the folder at that moment,
+  including someone's unfinished code, and runs its database changes: restart from a clean, up-to-date `main`.
+- Only **one** Telegram bot may run (two copies make Telegram reject one): check `pgrep -fl telegram_bot` first.
 
 ## Plans
 
