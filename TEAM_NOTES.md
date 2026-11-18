@@ -55,11 +55,19 @@ Every page is in Uzbek, Russian and English.
 - **Patient (department QR):** "Help NOW" button (nurse call / 103), I am a patient or a relative,
   good / OK / bad (optional), voice or text, check, send. Under 30 seconds.
 - **Staff (staff-room QR):** department, voice or text, check, send. Staff never pick a category or severity: the AI does.
-- **Every time, before anything is saved:** people see exactly what will be stored (text with names and numbers
-  already hidden, ward, role, date and part of day), a warning about details that could identify someone
-  (e.g. "the only nurse", an age), and they must agree to the terms. Then they get a case code.
+- **Every time, before anything is saved:** a short check screen shows exactly what will be stored: the text with
+  names and numbers already hidden, and one line with ward · role · date and part of day. It says "Name, phone and
+  voice are not stored", warns about details that could identify someone (e.g. "the only nurse", an age), and they tick
+  "I agree to the terms". Then they get a case code and a "See the reply" button.
 - **Clinic:** dashboard (headline = problems fixed; linked patient + staff problems; urgent; early warning),
   root-cause help, actions, "You said, we did" board, questions to reporters via the case code.
+
+## Design rules (keep it simple)
+
+- As little text as possible: a title, the controls, one button. No explanation paragraphs or extra info boxes.
+- One short line of help at most; put details on the terms page (`/privacy`), not on the form.
+- Every new text goes into all three languages (`app/static/i18n.js` or `app/static/i18n-clinic.js`).
+- One blue accent colour, no emojis (a test checks this), big buttons that work on a phone.
 
 ## What to say about privacy
 
@@ -140,7 +148,7 @@ Telegram picture, app icon, browser tab.
 ## 2-minute demo
 
 1. Scan a department QR on a phone: tap Patient, a face, record a voice note in Uzbek.
-2. Show the check screen: masked text, the privacy warning, "I agree". Send, get the code.
+2. Show the check screen: the hidden name, "Name, phone and voice are not stored", "I agree". Send, get the code.
 3. Staff side in Telegram: one voice note, AI decides it's a near-miss.
 4. Dashboard: the same ward appears as a **linked** problem (patients + staff), root-cause help, create an action.
 5. Mark it done: it shows on the "You said, we did" board; reply to the reporter via the case code.
