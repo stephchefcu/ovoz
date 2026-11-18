@@ -11,6 +11,7 @@ Design rules
 """
 import json
 import re
+import sys
 
 import httpx
 
@@ -286,9 +287,24 @@ def is_rule_summary(summary: str) -> bool:
     return any(summary in (d, d + NEAR_MISS_SUFFIX) for _, _, d in CATEGORIES.values())
 
 
+_CLAUDE_CHECK = {"ok": None}
+
+
+def _claude_available() -> bool:
+    """The anthropic SDK needs Python 3.10+. Without it, a set ANTHROPIC_API_KEY must not count as "Claude is on"."""
+    if _CLAUDE_CHECK["ok"] is None:
+        import importlib.util  # noqa: PLC0415
+        _CLAUDE_CHECK["ok"] = sys.version_info >= (3, 10) and importlib.util.find_spec("anthropic") is not None
+        if not _CLAUDE_CHECK["ok"] and config.ANTHROPIC_API_KEY:
+            print("WARNING: ANTHROPIC_API_KEY is set, but Claude needs Python 3.10+ and the anthropic package "
+                  f"(this is Python {sys.version_info.major}.{sys.version_info.minor}). Using keyword rules instead.",
+                  file=sys.stderr)
+    return _CLAUDE_CHECK["ok"]
+
+
 def llm_provider():
     """Which AI model is switched on: "claude", "openai-compatible", or None (keyword rules only)."""
-    if config.ANTHROPIC_API_KEY:
+    if config.ANTHROPIC_API_KEY and _claude_available():
         return "claude"
     if config.LLM_BASE_URL and config.LLM_API_KEY and config.LLM_MODEL:
         return "openai-compatible"
