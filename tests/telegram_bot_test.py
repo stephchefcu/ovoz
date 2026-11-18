@@ -7,7 +7,7 @@ import time
 
 os.environ["DB_PATH"] = os.path.join(tempfile.mkdtemp(), "bot.db")
 os.environ.update({"CLINIC_PASSWORD": "demo", "SESSION_SECRET": "bot-test-secret", "VOICELAB_API_KEY": "",
-                   "AISHA_API_KEY": "", "LLM_BASE_URL": "", "LLM_API_KEY": "", "LLM_MODEL": "",
+                   "AISHA_API_KEY": "", "ANTHROPIC_API_KEY": "", "LLM_BASE_URL": "", "LLM_API_KEY": "", "LLM_MODEL": "",
                    "STAFF_RELEASE_DELAY_HOURS": "0"})
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

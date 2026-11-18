@@ -4,3 +4,4 @@ jinja2>=3.1
 python-multipart>=0.0.9
 httpx>=0.27
 segno>=1.6
+anthropic>=2.10  # only used when ANTHROPIC_API_KEY is set (AI sorting with Claude)

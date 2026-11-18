@@ -51,6 +51,10 @@ PUBLIC_URL = env("PUBLIC_URL").rstrip("/")
 # Shown on /pricing for the Network plan, e.g. a Telegram username or phone (optional).
 SALES_CONTACT = env("SALES_CONTACT")
 
+# Claude (Anthropic) for AI sorting, summaries and root-cause help. OFF until ANTHROPIC_API_KEY is set in .env.
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY")
+CLAUDE_MODEL = env("CLAUDE_MODEL", "claude-sonnet-5-5")
+
 LLM_BASE_URL = env("LLM_BASE_URL").rstrip("/")
 LLM_API_KEY = env("LLM_API_KEY")
 LLM_MODEL = env("LLM_MODEL")

@@ -58,9 +58,10 @@ uses long polling, so it needs no public address. Voice messages go through the 
 The bot stores no chat id, username or audio; the conversation in progress lives in memory for up to 30 minutes.
 Telegram itself still knows who sent a message, and the bot says so to users.
 
-**Language model (optional).** Any OpenAI-compatible chat API: set `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`.
+**Language model (optional, off by default).** Claude: set `ANTHROPIC_API_KEY` (model `CLAUDE_MODEL`, default
+`claude-sonnet-5-5`; needs `pip install -r requirements.txt`). Or any OpenAI-compatible chat API: set `LLM_BASE_URL`,
+`LLM_API_KEY`, `LLM_MODEL`. Without either, keyword rules are used. Test without calling Anthropic: `python tests/claude_test.py`.
 It improves triage, neutral summaries and root-cause help. Text is **masked before** it is sent.
-Without it, rules are used.
 
 ## What is implemented
 
